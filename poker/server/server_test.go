@@ -254,6 +254,8 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 		PlayersToCreate    *pb.Players
 		GameToCreate       *pb.Game
 		SecondSetOfPlayers *pb.Game
+		ThirdSetOfPlayers  *pb.Game
+		SecondNumOfPlayers int
 		FinalNumOfPlayers  int
 		ExpError           string
 	}{
@@ -283,6 +285,10 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 					},
 					{
 						Name:  "mary",
+						Chips: 0,
+					},
+					{
+						Name:  "jaimie",
 						Chips: 0,
 					},
 				},
@@ -319,7 +325,15 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 				Players: &pb.Players{
 					Players: []*pb.Player{
 						{
-							Name:  "mary",
+							Name:  "mary", // new player
+							Chips: 0,
+						},
+						{
+							Name:  "tim3",
+							Chips: 0,
+						},
+						{
+							Name:  "cam3",
 							Chips: 0,
 						},
 						{
@@ -329,7 +343,27 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 					},
 				},
 			},
-			FinalNumOfPlayers: 6,
+			ThirdSetOfPlayers: &pb.Game{
+				Name: "testgame1",
+				Players: &pb.Players{
+					Players: []*pb.Player{
+						{
+							Name:  "mary",
+							Chips: 0,
+						},
+						{
+							Name:  "tim3",
+							Chips: 0,
+						},
+						{
+							Name:  "jaimie", //new player
+							Chips: 0,
+						},
+					},
+				},
+			},
+			SecondNumOfPlayers: 6,
+			FinalNumOfPlayers:  7,
 
 			ExpError: "",
 		},
@@ -359,6 +393,15 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 
 			// Set the second set of game players
 			_, err = testClient.SetGamePlayers(ctx, &pb.Game{Id: game.GetId(), Players: tt.SecondSetOfPlayers.Players})
+			require.NoError(t, err)
+
+			// validate the number of total players after setting second round of players is correct
+			players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, tt.SecondNumOfPlayers, len(players.GetPlayers()))
+
+			// Set the third set of game players
+			_, err = testClient.SetGamePlayers(ctx, &pb.Game{Id: game.GetId(), Players: tt.ThirdSetOfPlayers.Players})
 			require.NoError(t, err)
 
 			// validate the number of final players is correct
