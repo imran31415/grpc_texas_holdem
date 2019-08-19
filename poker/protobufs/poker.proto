@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package poker;
+service Poker {
+    rpc CreatePlayer(Player) returns (Player){}
+    rpc CreatePlayers(Players) returns (Players){}
+    rpc GetPlayer(Player) returns (Player){}
+}
+
+message Card {
+    enum Suit {
+        UNKNOWN_SUIT = 0;
+        HEARTS = 1;
+        DIAMONDS = 2;
+        CLUBS = 3;
+        SPADES = 4;
+    }
+
+    enum Rank {
+        UNKNOWN_RANK = 0;
+        ACE = 1;
+        TWO = 2;
+        THREE = 3;
+        FOUR = 4;
+        FIVE = 5;
+        SIX = 6;
+        SEVEN = 7;
+        EIGHT = 8;
+        NINE = 9;
+        TEN = 10;
+        JACK = 11;
+        QUEEN = 12;
+        KING = 13;
+    }
+
+    Suit suit = 1;
+    Rank rank = 2;
+}
+
+
+
+message Deck {
+    repeated Card cards = 1;
+}
+
+message Player {
+    int64 id = 1;
+    string name = 2;
+    int64 chips = 3;
+    Hand hand = 4;
+}
+
+message Players {
+    repeated Player players= 1;
+}
+
+message Hand {
+    Card one = 1;
+    Card two = 2;
+}
+
+message Flop {
+    Card one = 1;
+    Card two = 2;
+    Card three =3;
+    Card four =4;
+    Card five =5;
+}
+
+
+message Game {
+
+    Player one = 1;
+    Player two = 2;
+    Player three = 3;
+    Player four = 4;
+    Player five = 5;
+    Player six = 6;
+    Player seven = 7;
+    Player eight = 8;
+
+    int64 id = 9;
+    Player small = 10;
+    Player big = 11;
+    Player Dealer = 12;
+    repeated Card deck = 13;
+}
+//   protoc -I poker/ poker/protobufs/poker.proto --go_out=plugins=grpc:poker
