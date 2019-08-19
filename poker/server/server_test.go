@@ -20,11 +20,12 @@ import (
 const dbName = "testDb"
 
 var (
-	testClient pb.PokerClient
-	testDatabase string
+	testClient     pb.PokerClient
+	testDatabase   string
 	testConnection *grpc.ClientConn
 )
-func init(){
+
+func init() {
 	rand.Seed(time.Now().Unix())
 	testDatabase = fmt.Sprintf("test_%s_%d", "Players", rand.Int63())
 	go runTestServer(testDatabase)
@@ -63,7 +64,6 @@ func runTestServer(name string) {
 }
 
 func TestServer_CreatePlayer(t *testing.T) {
-
 
 	tests := []struct {
 		Name     string
@@ -127,7 +127,7 @@ func TestServer_CreatePlayers(t *testing.T) {
 		{
 			Name: "Create players",
 			Players: &pb.Players{
-				Players:[]*pb.Player{
+				Players: []*pb.Player{
 					{
 						Name:  "bob1",
 						Chips: 0,
@@ -148,17 +148,14 @@ func TestServer_CreatePlayers(t *testing.T) {
 						Name:  "tim1",
 						Chips: 0,
 					},
-
 				},
-
 			},
-			ExpError:"",
-
+			ExpError: "",
 		},
 		{
 			Name: "Create players with one as empty name",
 			Players: &pb.Players{
-				Players:[]*pb.Player{
+				Players: []*pb.Player{
 					{
 						Name:  "bob2",
 						Chips: 0,
@@ -168,7 +165,7 @@ func TestServer_CreatePlayers(t *testing.T) {
 						Chips: 0,
 					},
 					{
-						Name:  "",  // should cause error
+						Name:  "", // should cause error
 						Chips: 0,
 					},
 					{
@@ -179,12 +176,9 @@ func TestServer_CreatePlayers(t *testing.T) {
 						Name:  "tim2",
 						Chips: 0,
 					},
-
 				},
-
 			},
 			ExpError: "rpc error: code = Unknown desc = can not create player with empty name",
-
 		},
 	}
 
@@ -203,34 +197,31 @@ func TestServer_CreatePlayers(t *testing.T) {
 
 }
 
-
-
 func TestServer_CreateGame(t *testing.T) {
-
 
 	tests := []struct {
 		Name     string
-		Game   *pb.Game
+		Game     *pb.Game
 		ExpError string
 	}{
 		{
 			Name: "Create a game",
 			Game: &pb.Game{
-				Name:  "testgame0",
+				Name: "testgame0",
 			},
 			ExpError: "",
 		},
 		{
 			Name: "Create game with empty name",
 			Game: &pb.Game{
-				Name:  "",
+				Name: "",
 			},
 			ExpError: "rpc error: code = Unknown desc = can not create game with empty name",
 		},
 		{
 			Name: "Create game that already exists",
 			Game: &pb.Game{
-				Name:  "testgame0",
+				Name: "testgame0",
 			},
 			ExpError: "rpc error: code = Unknown desc = game with that name already exists",
 		},
@@ -256,21 +247,19 @@ func TestServer_CreateGame(t *testing.T) {
 
 }
 
-
 func TestServer_CreateGamePlayers(t *testing.T) {
-
 
 	tests := []struct {
 		Name     string
-		Game   *pb.Game
+		Game     *pb.Game
 		ExpError string
 	}{
 		{
 			Name: "Create game players",
 			Game: &pb.Game{
-				Name:  "testgame1",
+				Name: "testgame1",
 				Players: &pb.Players{
-					Players:[]*pb.Player{
+					Players: []*pb.Player{
 						{
 							Name:  "bob3",
 							Chips: 0,
@@ -291,15 +280,12 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 							Name:  "tim3",
 							Chips: 0,
 						},
-
 					},
-
 				},
 			},
 
 			ExpError: "",
 		},
-
 	}
 
 	for _, tt := range tests {

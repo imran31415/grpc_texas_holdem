@@ -17,12 +17,12 @@ const (
 )
 
 var (
-	ErrPlayerNameExists= fmt.Errorf("Player with that name already exists")
-	ErrEmptyPlayerName = fmt.Errorf("can not create player with empty name")
+	ErrPlayerNameExists   = fmt.Errorf("Player with that name already exists")
+	ErrEmptyPlayerName    = fmt.Errorf("can not create player with empty name")
 	ErrInvalidPlayerCount = fmt.Errorf("can not create game with supplied count of players")
-	ErrGameNameExists= fmt.Errorf("game with that name already exists")
-	ErrEmptyGameName = fmt.Errorf("can not create game with empty name")
-	ErrTooManyPlayers = fmt.Errorf("too many players to create game")
+	ErrGameNameExists     = fmt.Errorf("game with that name already exists")
+	ErrEmptyGameName      = fmt.Errorf("can not create game with empty name")
+	ErrTooManyPlayers     = fmt.Errorf("too many players to create game")
 )
 
 type Server struct {
@@ -74,7 +74,6 @@ func (s *Server) setupDatabase(name string) error {
 		return err
 	}
 
-
 	s.db = database
 	return nil
 }
@@ -121,7 +120,7 @@ func (s *Server) CreatePlayer(ctx context.Context, p *pb.Player) (*pb.Player, er
 		return nil, err
 	}
 	player, err := s.GetPlayer(ctx, &pb.Player{
-		Id:insertedId,
+		Id: insertedId,
 	})
 	if err != nil {
 		return nil, err
@@ -131,7 +130,7 @@ func (s *Server) CreatePlayer(ctx context.Context, p *pb.Player) (*pb.Player, er
 }
 
 func (s *Server) CreatePlayers(ctx context.Context, players *pb.Players) (*pb.Players, error) {
-	out :=  &pb.Players{}
+	out := &pb.Players{}
 	for _, p := range players.Players {
 		player, err := s.CreatePlayer(ctx, p)
 		if err != nil {
@@ -145,8 +144,10 @@ func (s *Server) CreatePlayers(ctx context.Context, players *pb.Players) (*pb.Pl
 
 func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, error) {
 	statement, err := s.db.Prepare("SELECT id, name, chips FROM Players WHERE id=(?)")
-	if err != nil {return nil, err}
-	row  := statement.QueryRow(in.GetId())
+	if err != nil {
+		return nil, err
+	}
+	row := statement.QueryRow(in.GetId())
 	var id, chips int
 	var name string
 	switch err := row.Scan(&id, &name, &chips); err {
@@ -154,9 +155,9 @@ func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, erro
 		return nil, nil
 	case nil:
 		return &pb.Player{
-			Id: int64(id),
-			Name: name,
-			Chips:int64(chips),
+			Id:    int64(id),
+			Name:  name,
+			Chips: int64(chips),
 		}, nil
 	default:
 		return nil, err
@@ -165,8 +166,10 @@ func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, erro
 
 func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player, error) {
 	statement, err := s.db.Prepare("SELECT id, name, chips FROM Players WHERE name=(?)")
-	if err != nil {return nil, err}
-	row  := statement.QueryRow(in.GetName())
+	if err != nil {
+		return nil, err
+	}
+	row := statement.QueryRow(in.GetName())
 	var id, chips int
 	var name string
 	switch err := row.Scan(&id, &name, &chips); err {
@@ -174,20 +177,21 @@ func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player
 		return nil, nil
 	case nil:
 		return &pb.Player{
-			Id: int64(id),
-			Name: name,
-			Chips:int64(chips),
+			Id:    int64(id),
+			Name:  name,
+			Chips: int64(chips),
 		}, nil
 	default:
 		return nil, err
 	}
 }
 
-
 func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	statement, err := s.db.Prepare("SELECT id, name FROM Game WHERE id=(?)")
-	if err != nil {return nil, err}
-	row  := statement.QueryRow(in.GetId())
+	if err != nil {
+		return nil, err
+	}
+	row := statement.QueryRow(in.GetId())
 	var id int
 	var name string
 	switch err := row.Scan(&id, &name); err {
@@ -195,7 +199,7 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 		return nil, nil
 	case nil:
 		return &pb.Game{
-			Id: int64(id),
+			Id:   int64(id),
 			Name: name,
 		}, nil
 	default:
@@ -203,19 +207,20 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	}
 }
 
-
 func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	statement, err := s.db.Prepare("SELECT id, name FROM Game WHERE name=(?)")
-	if err != nil {return nil, err}
-	row  := statement.QueryRow(in.GetName())
+	if err != nil {
+		return nil, err
+	}
+	row := statement.QueryRow(in.GetName())
 	var id int
 	var name string
-	switch err := row.Scan(&id, &name,); err {
+	switch err := row.Scan(&id, &name); err {
 	case sql.ErrNoRows:
 		return nil, nil
 	case nil:
 		return &pb.Game{
-			Id: int64(id),
+			Id:   int64(id),
 			Name: name,
 		}, nil
 	default:
@@ -223,18 +228,21 @@ func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, erro
 	}
 }
 
-
-
-
 func (s *Server) GetGamePlayers(ctx context.Context, in *pb.Game) (*pb.Players, error) {
 
 	statement, err := s.db.Prepare("SELECT id, player, game FROM GamePlayers WHERE game=(?)")
-	if err != nil {return nil, err}
-	rows, err  := statement.Query(in.GetName())
-	if err != nil {return nil, err}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := statement.Query(in.GetName())
+	if err != nil {
+		return nil, err
+	}
 	out := []*pb.Player{}
 
-	if err != nil {return nil, err}
+	if err != nil {
+		return nil, err
+	}
 	var id, player, game int
 	for rows.Next() {
 		err = rows.Scan(&id, &player, &game)
@@ -242,12 +250,12 @@ func (s *Server) GetGamePlayers(ctx context.Context, in *pb.Game) (*pb.Players, 
 			return nil, err
 		}
 		out = append(out, &pb.Player{
-			Id:int64(id),
+			Id: int64(id),
 		})
 
 	}
 	players := &pb.Players{
-		Players:out,
+		Players: out,
 	}
 	return players, nil
 }
@@ -259,16 +267,14 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 		return nil, err
 	}
 
-
-
-	pMap := map[int64]bool {}
+	pMap := map[int64]bool{}
 	// Get a map of all players requesting to be set
-	for _, id := range g.GetPlayers().GetPlayers(){
+	for _, id := range g.GetPlayers().GetPlayers() {
 		pMap[id.GetId()] = true
 	}
 
 	// Get an ID of all the players that exist in the game and set the value to false so we know not to re-add them
-	for _, p := range exists.GetPlayers(){
+	for _, p := range exists.GetPlayers() {
 		if ok, _ := pMap[p.GetId()]; ok {
 			pMap[p.GetId()] = false
 		}
@@ -276,7 +282,7 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 
 	// Generate an output array of  negative intersection between the existing players and the players to be add
 	outMap := []int64{}
-	for _, p := range g.GetPlayers().GetPlayers(){
+	for _, p := range g.GetPlayers().GetPlayers() {
 		if ok, v := pMap[p.GetId()]; ok {
 			// if value is true then they do not already exist
 			if v {
@@ -305,17 +311,11 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	}
 	return players, err
 
-
-
-
-
-
 	return nil, nil
 }
 
-
 func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
-	if g.GetName() == ""{
+	if g.GetName() == "" {
 		return nil, ErrEmptyGameName
 	}
 
@@ -341,13 +341,12 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	}
 
 	game, err := s.GetGame(ctx, &pb.Game{
-		Id:insertedId,
+		Id: insertedId,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return game, nil
-
 
 }
 
@@ -366,4 +365,3 @@ func Run() {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
-

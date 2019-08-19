@@ -16,8 +16,6 @@ const (
 	defaultName = "Dumbo, you didnt specify a name!"
 )
 
-
-
 //  go run imran/pokerproject/poker_client/main.go imran
 func Run() {
 	conn, c := CreateConnectionClient()
@@ -36,18 +34,17 @@ func Run() {
 	if err != nil {
 		log.Fatalf("could not create player: %v", err)
 	}
-	log.Printf("Greeting: %s, your ID is %d and your chipcount is %d", r.GetName(), r.GetId(), r.GetChips() )
+	log.Printf("Greeting: %s, your ID is %d and your chipcount is %d", r.GetName(), r.GetId(), r.GetChips())
 }
 
-func CreateOnePlayer(client pb.PokerClient, ctx context.Context, name string, id int64, chips int64) (*pb.Player, error){
-	r, err := client.CreatePlayer(ctx, &pb.Player{Name: name, Id:id, Chips:chips})
+func CreateOnePlayer(client pb.PokerClient, ctx context.Context, name string, id int64, chips int64) (*pb.Player, error) {
+	r, err := client.CreatePlayer(ctx, &pb.Player{Name: name, Id: id, Chips: chips})
 	if err != nil {
 		return nil, err
 	}
 	return r, nil
 
 }
-
 
 func CreateConnectionClient() (*grpc.ClientConn, pb.PokerClient) {
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
