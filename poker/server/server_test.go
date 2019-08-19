@@ -251,7 +251,7 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 
 	tests := []struct {
 		Name               string
-		PlayersToCreate           *pb.Players
+		PlayersToCreate    *pb.Players
 		GameToCreate       *pb.Game
 		SecondSetOfPlayers *pb.Game
 		FinalNumOfPlayers  int
@@ -314,7 +314,7 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 					},
 				},
 			},
-			SecondSetOfPlayers:&pb.Game{
+			SecondSetOfPlayers: &pb.Game{
 				Name: "testgame1",
 				Players: &pb.Players{
 					Players: []*pb.Player{
@@ -329,7 +329,7 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 					},
 				},
 			},
-			FinalNumOfPlayers:6,
+			FinalNumOfPlayers: 6,
 
 			ExpError: "",
 		},
@@ -349,20 +349,20 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 
 			require.NoError(t, err)
 			// Set the initial game players
-			_ , err = testClient.SetGamePlayers(ctx, game)
+			_, err = testClient.SetGamePlayers(ctx, game)
 			require.NoError(t, err)
 
 			// validate the number of initial players is correct
-			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id:game.GetId()})
+			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
 			require.NoError(t, err)
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
 
 			// Set the second set of game players
-			_ , err = testClient.SetGamePlayers(ctx, &pb.Game{Id:game.GetId(), Players: tt.SecondSetOfPlayers.Players})
+			_, err = testClient.SetGamePlayers(ctx, &pb.Game{Id: game.GetId(), Players: tt.SecondSetOfPlayers.Players})
 			require.NoError(t, err)
 
 			// validate the number of final players is correct
-			players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id:game.GetId()})
+			players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
 			require.NoError(t, err)
 			require.Equal(t, tt.FinalNumOfPlayers, len(players.GetPlayers()))
 

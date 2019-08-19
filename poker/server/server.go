@@ -164,10 +164,9 @@ func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, erro
 	}
 }
 
-
 func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Players, error) {
 	out := &pb.Players{}
-	for _, in := range players.GetPlayers(){
+	for _, in := range players.GetPlayers() {
 		p, err := s.GetPlayer(ctx, in)
 		if err != nil {
 			return nil, err
@@ -289,10 +288,8 @@ func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.P
 	return players, nil
 }
 
-
 // SetGamePlayers Sets the game players
 func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, error) {
-
 
 	// 1. Get existing players IDs in the game
 	existingIds, err := s.GetGamePlayersByGameId(ctx, g)
@@ -309,7 +306,7 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	fmt.Println("Existing Players", existingPlayerRecords.GetPlayers())
 	// 2.a create a map of existing playerIds to the player record
 	existingPlayersMap := map[int64]*pb.Player{}
-	for _, p := range existingPlayerRecords.GetPlayers(){
+	for _, p := range existingPlayerRecords.GetPlayers() {
 		existingPlayersMap[p.GetId()] = p
 	}
 	fmt.Println("Existing Players Map", existingPlayersMap)
@@ -322,16 +319,15 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	fmt.Println("Players to Join", playersToJoinRecords.GetPlayers())
 	// 3.a create a map of requesting playerIds to whether they should join
 	playersToJoinMap := map[int64]*pb.Player{}
-	for _, p := range playersToJoinRecords.GetPlayers(){
+	for _, p := range playersToJoinRecords.GetPlayers() {
 		// Player is not already on the game list
-		if _, ok := existingPlayersMap[p.GetId()]; !ok{
+		if _, ok := existingPlayersMap[p.GetId()]; !ok {
 			playersToJoinMap[p.GetId()] = p
 		}
 	}
 	fmt.Println("Players to join Map", playersToJoinMap)
 
 	for _, shouldAdd := range playersToJoinMap {
-
 
 		statement, err := s.db.Prepare("INSERT INTO GamePlayers (player, game) VALUES(?, ?)")
 		if err != nil {
