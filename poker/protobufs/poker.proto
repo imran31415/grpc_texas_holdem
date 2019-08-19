@@ -11,6 +11,7 @@ service Poker {
     rpc GetGame(Game) returns (Game){}
     rpc GetGamePlayers(Game) returns (Players){}
     rpc GetGameByName(Game) returns (Game){}
+    rpc SetGamePlayers(Game) returns (Players){}
 }
 
 message Card {

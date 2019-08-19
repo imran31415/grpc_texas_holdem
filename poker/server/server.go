@@ -22,6 +22,7 @@ var (
 	ErrInvalidPlayerCount = fmt.Errorf("can not create game with supplied count of players")
 	ErrGameNameExists= fmt.Errorf("game with that name already exists")
 	ErrEmptyGameName = fmt.Errorf("can not create game with empty name")
+	ErrTooManyPlayers = fmt.Errorf("too many players to create game")
 )
 
 type Server struct {
@@ -226,6 +227,89 @@ func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, erro
 
 
 func (s *Server) GetGamePlayers(ctx context.Context, in *pb.Game) (*pb.Players, error) {
+
+	statement, err := s.db.Prepare("SELECT id, player, game FROM GamePlayers WHERE game=(?)")
+	if err != nil {return nil, err}
+	rows, err  := statement.Query(in.GetName())
+	if err != nil {return nil, err}
+	out := []*pb.Player{}
+
+	if err != nil {return nil, err}
+	var id, player, game int
+	for rows.Next() {
+		err = rows.Scan(&id, &player, &game)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, &pb.Player{
+			Id:int64(id),
+		})
+
+	}
+	players := &pb.Players{
+		Players:out,
+	}
+	return players, nil
+}
+
+func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, error) {
+	fmt.Print("Game Players to add", g.GetPlayers().GetPlayers())
+	exists, err := s.GetGamePlayers(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+
+
+
+	pMap := map[int64]bool {}
+	// Get a map of all players requesting to be set
+	for _, id := range g.GetPlayers().GetPlayers(){
+		pMap[id.GetId()] = true
+	}
+
+	// Get an ID of all the players that exist in the game and set the value to false so we know not to re-add them
+	for _, p := range exists.GetPlayers(){
+		if ok, _ := pMap[p.GetId()]; ok {
+			pMap[p.GetId()] = false
+		}
+	}
+
+	// Generate an output array of  negative intersection between the existing players and the players to be add
+	outMap := []int64{}
+	for _, p := range g.GetPlayers().GetPlayers(){
+		if ok, v := pMap[p.GetId()]; ok {
+			// if value is true then they do not already exist
+			if v {
+				outMap = append(outMap, p.GetId())
+			}
+		}
+	}
+	for _, toAdd := range outMap {
+
+		statement, err := s.db.Prepare("INSERT INTO GamePlayers (player, game) VALUES(?, ?)")
+		if err != nil {
+			return nil, err
+		}
+		result, err := statement.Exec(toAdd, g.GetId())
+		if err != nil {
+			return nil, err
+		}
+		_, err = result.LastInsertId()
+		if err != nil {
+			return nil, err
+		}
+	}
+	players, err := s.GetGamePlayers(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	return players, err
+
+
+
+
+
+
 	return nil, nil
 }
 

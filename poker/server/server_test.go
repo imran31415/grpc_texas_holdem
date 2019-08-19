@@ -220,20 +220,20 @@ func TestServer_CreateGame(t *testing.T) {
 			},
 			ExpError: "",
 		},
-		//{
-		//	Name: "Create game with empty name",
-		//	Game: &pb.Game{
-		//		Name:  "",
-		//	},
-		//	ExpError: "rpc error: code = Unknown desc = can not create game with empty name",
-		//},
-		//{
-		//	Name: "Create game that already exists",
-		//	Game: &pb.Game{
-		//		Name:  "testgame0",
-		//	},
-		//	ExpError: "rpc error: code = Unknown desc = game with that name already exists",
-		//},
+		{
+			Name: "Create game with empty name",
+			Game: &pb.Game{
+				Name:  "",
+			},
+			ExpError: "rpc error: code = Unknown desc = can not create game with empty name",
+		},
+		{
+			Name: "Create game that already exists",
+			Game: &pb.Game{
+				Name:  "testgame0",
+			},
+			ExpError: "rpc error: code = Unknown desc = game with that name already exists",
+		},
 	}
 
 	for _, tt := range tests {
@@ -254,4 +254,72 @@ func TestServer_CreateGame(t *testing.T) {
 		})
 	}
 
+}
+
+
+func TestServer_CreateGamePlayers(t *testing.T) {
+
+
+	tests := []struct {
+		Name     string
+		Game   *pb.Game
+		ExpError string
+	}{
+		{
+			Name: "Create game players",
+			Game: &pb.Game{
+				Name:  "testgame1",
+				Players: &pb.Players{
+					Players:[]*pb.Player{
+						{
+							Name:  "bob3",
+							Chips: 0,
+						},
+						{
+							Name:  "jim3",
+							Chips: 0,
+						},
+						{
+							Name:  "fred3",
+							Chips: 0,
+						},
+						{
+							Name:  "cam3",
+							Chips: 0,
+						},
+						{
+							Name:  "tim3",
+							Chips: 0,
+						},
+
+					},
+
+				},
+			},
+
+			ExpError: "",
+		},
+
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			_, err := testClient.CreatePlayers(ctx, tt.Game.GetPlayers())
+			require.NoError(t, err)
+
+			game, err := testClient.CreateGame(ctx, tt.Game)
+			game.Players = tt.Game.GetPlayers()
+
+			require.NoError(t, err)
+			//TODO:
+			//  Need to implement GetPLayers so we can get the correct IDs to add to SetPlayerGames
+			players, err := testClient.SetGamePlayers(ctx, game)
+
+			require.Equal(t, len(tt.Game.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+
+		})
+	}
 }
