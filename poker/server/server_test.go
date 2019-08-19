@@ -73,7 +73,7 @@ func TestServer_CreatePlayer(t *testing.T) {
 		{
 			Name: "Create a player",
 			Player: &pb.Player{
-				Name:  "bob",
+				Name:  "bob0",
 				Chips: 0,
 			},
 			ExpError: "",
@@ -121,23 +121,23 @@ func TestServer_CreatePlayers(t *testing.T) {
 			Players: &pb.Players{
 				Players:[]*pb.Player{
 					{
-						Name:  "bob",
+						Name:  "bob1",
 						Chips: 0,
 					},
 					{
-						Name:  "jim",
+						Name:  "jim1",
 						Chips: 0,
 					},
 					{
-						Name:  "fred",
+						Name:  "fred1",
 						Chips: 0,
 					},
 					{
-						Name:  "cam",
+						Name:  "cam1",
 						Chips: 0,
 					},
 					{
-						Name:  "tim",
+						Name:  "tim1",
 						Chips: 0,
 					},
 
@@ -152,11 +152,11 @@ func TestServer_CreatePlayers(t *testing.T) {
 			Players: &pb.Players{
 				Players:[]*pb.Player{
 					{
-						Name:  "bob",
+						Name:  "bob2",
 						Chips: 0,
 					},
 					{
-						Name:  "jim",
+						Name:  "jim2",
 						Chips: 0,
 					},
 					{
@@ -164,11 +164,11 @@ func TestServer_CreatePlayers(t *testing.T) {
 						Chips: 0,
 					},
 					{
-						Name:  "cam",
+						Name:  "cam2",
 						Chips: 0,
 					},
 					{
-						Name:  "tim",
+						Name:  "tim2",
 						Chips: 0,
 					},
 

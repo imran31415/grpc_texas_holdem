@@ -1,10 +1,13 @@
 syntax = "proto3";
 
 package poker;
+
 service Poker {
     rpc CreatePlayer(Player) returns (Player){}
     rpc CreatePlayers(Players) returns (Players){}
     rpc GetPlayer(Player) returns (Player){}
+    rpc GetPlayerByName(Player) returns (Player){}
+    rpc CreateGame(Players) returns (Game){}
 }
 
 message Card {
@@ -69,20 +72,24 @@ message Flop {
 
 
 message Game {
+    enum PlayerSlot {
+        slot_undefined = 0;
+        slot_one = 1;
+        slot_two = 2;
+        slot_three = 3;
+        slot_four = 4;
+        slot_five = 5;
+        slot_six = 6;
+        slot_seven = 7;
+        slot_eight = 8;
+    }
 
-    Player one = 1;
-    Player two = 2;
-    Player three = 3;
-    Player four = 4;
-    Player five = 5;
-    Player six = 6;
-    Player seven = 7;
-    Player eight = 8;
+    Players players = 1;
 
     int64 id = 9;
-    Player small = 10;
-    Player big = 11;
-    Player Dealer = 12;
+    PlayerSlot small = 10;
+    PlayerSlot big = 11;
+    PlayerSlot Dealer = 12;
     repeated Card deck = 13;
 }
 //   protoc -I poker/ poker/protobufs/poker.proto --go_out=plugins=grpc:poker

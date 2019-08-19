@@ -17,7 +17,9 @@ const (
 )
 
 var (
+	ErrPlayerNameExists= fmt.Errorf("Player with that name already exists")
 	ErrEmptyPlayerName = fmt.Errorf("can not create player with empty name")
+	ErrInvalidPlayerCount = fmt.Errorf("can not create game with supplied count of players")
 )
 
 type Server struct {
@@ -51,10 +53,6 @@ func (s *Server) setupDatabase(name string) error {
 	return nil
 }
 
-
-
-
-
 func (s *Server) teardownTable(name string) error {
 	st := fmt.Sprintf("DROP TABLE IF EXISTS %s", name)
 
@@ -74,6 +72,14 @@ func (s *Server) teardownTable(name string) error {
 func (s *Server) CreatePlayer(ctx context.Context, p *pb.Player) (*pb.Player, error) {
 	if p.GetName() == "" {
 		return nil, ErrEmptyPlayerName
+	}
+
+	exists, err := s.GetPlayerByName(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	if exists != nil {
+		return nil, ErrPlayerNameExists
 	}
 
 	statement, err := s.db.Prepare("INSERT INTO Players (name, chips) VALUES (?, ?)")
@@ -98,7 +104,6 @@ func (s *Server) CreatePlayer(ctx context.Context, p *pb.Player) (*pb.Player, er
 
 }
 
-
 func (s *Server) CreatePlayers(ctx context.Context, players *pb.Players) (*pb.Players, error) {
 	out :=  &pb.Players{}
 	for _, p := range players.Players {
@@ -111,8 +116,6 @@ func (s *Server) CreatePlayers(ctx context.Context, players *pb.Players) (*pb.Pl
 	return out, nil
 
 }
-
-
 
 func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, error) {
 	statement, err := s.db.Prepare("SELECT id, name, chips FROM Players WHERE id=(?)")
@@ -134,6 +137,35 @@ func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, erro
 	}
 }
 
+func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player, error) {
+	statement, err := s.db.Prepare("SELECT id, name, chips FROM Players WHERE name=(?)")
+	if err != nil {return nil, err}
+	row  := statement.QueryRow(in.GetName())
+	var id, chips int
+	var name string
+	switch err := row.Scan(&id, &name, &chips); err {
+	case sql.ErrNoRows:
+		return nil, nil
+	case nil:
+		return &pb.Player{
+			Id: int64(id),
+			Name: name,
+			Chips:int64(chips),
+		}, nil
+	default:
+		return nil, err
+	}
+}
+
+func (s *Server) CreateGame(ctx context.Context, players *pb.Players) (*pb.Game, error) {
+	if len(players.GetPlayers())  > 8 || len(players.GetPlayers())  <3 {
+		return nil, ErrInvalidPlayerCount
+	}
+	return nil, nil
+
+
+
+}
 
 func Run() {
 	lis, err := net.Listen("tcp", Port)
@@ -150,3 +182,4 @@ func Run() {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
+
