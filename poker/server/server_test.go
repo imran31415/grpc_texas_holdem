@@ -247,7 +247,7 @@ func TestServer_CreateGame(t *testing.T) {
 
 }
 
-func TestServer_CreateGamePlayers(t *testing.T) {
+func TestServer_SetGamePlayers(t *testing.T) {
 
 	tests := []struct {
 		Name               string
@@ -367,6 +367,7 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 
 			ExpError: "",
 		},
+
 	}
 
 	for _, tt := range tests {
