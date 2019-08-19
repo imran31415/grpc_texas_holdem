@@ -250,13 +250,44 @@ func TestServer_CreateGame(t *testing.T) {
 func TestServer_CreateGamePlayers(t *testing.T) {
 
 	tests := []struct {
-		Name     string
-		Game     *pb.Game
-		ExpError string
+		Name               string
+		PlayersToCreate           *pb.Players
+		GameToCreate       *pb.Game
+		SecondSetOfPlayers *pb.Game
+		FinalNumOfPlayers  int
+		ExpError           string
 	}{
 		{
 			Name: "Create game players",
-			Game: &pb.Game{
+			PlayersToCreate: &pb.Players{
+				Players: []*pb.Player{
+					{
+						Name:  "bob3",
+						Chips: 0,
+					},
+					{
+						Name:  "jim3",
+						Chips: 0,
+					},
+					{
+						Name:  "fred3",
+						Chips: 0,
+					},
+					{
+						Name:  "cam3",
+						Chips: 0,
+					},
+					{
+						Name:  "tim3",
+						Chips: 0,
+					},
+					{
+						Name:  "mary",
+						Chips: 0,
+					},
+				},
+			},
+			GameToCreate: &pb.Game{
 				Name: "testgame1",
 				Players: &pb.Players{
 					Players: []*pb.Player{
@@ -283,6 +314,22 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 					},
 				},
 			},
+			SecondSetOfPlayers:&pb.Game{
+				Name: "testgame1",
+				Players: &pb.Players{
+					Players: []*pb.Player{
+						{
+							Name:  "mary",
+							Chips: 0,
+						},
+						{
+							Name:  "tim3",
+							Chips: 0,
+						},
+					},
+				},
+			},
+			FinalNumOfPlayers:6,
 
 			ExpError: "",
 		},
@@ -293,18 +340,31 @@ func TestServer_CreateGamePlayers(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			_, err := testClient.CreatePlayers(ctx, tt.Game.GetPlayers())
+			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
+			require.NoError(t, err)
+			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
+			// Create the initial game
+			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
+			game.Players = tt.GameToCreate.GetPlayers()
+
+			require.NoError(t, err)
+			// Set the initial game players
+			_ , err = testClient.SetGamePlayers(ctx, game)
 			require.NoError(t, err)
 
-			game, err := testClient.CreateGame(ctx, tt.Game)
-			game.Players = tt.Game.GetPlayers()
-
+			// validate the number of initial players is correct
+			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id:game.GetId()})
 			require.NoError(t, err)
-			//TODO:
-			//  Need to implement GetPLayers so we can get the correct IDs to add to SetPlayerGames
-			players, err := testClient.SetGamePlayers(ctx, game)
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
 
-			require.Equal(t, len(tt.Game.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+			// Set the second set of game players
+			_ , err = testClient.SetGamePlayers(ctx, &pb.Game{Id:game.GetId(), Players: tt.SecondSetOfPlayers.Players})
+			require.NoError(t, err)
+
+			// validate the number of final players is correct
+			players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id:game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, tt.FinalNumOfPlayers, len(players.GetPlayers()))
 
 		})
 	}

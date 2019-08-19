@@ -164,6 +164,19 @@ func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, erro
 	}
 }
 
+
+func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Players, error) {
+	out := &pb.Players{}
+	for _, in := range players.GetPlayers(){
+		p, err := s.GetPlayer(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		out.Players = append(out.GetPlayers(), p)
+	}
+	return out, nil
+}
+
 func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player, error) {
 	statement, err := s.db.Prepare("SELECT id, name, chips FROM Players WHERE name=(?)")
 	if err != nil {
@@ -184,6 +197,22 @@ func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player
 	default:
 		return nil, err
 	}
+}
+
+func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb.Players, error) {
+
+	out := &pb.Players{}
+	// TODO switch this to be 1 query
+	for _, in := range players.GetPlayers() {
+		p, err := s.GetPlayerByName(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		out.Players = append(out.GetPlayers(), p)
+
+	}
+	return out, nil
+
 }
 
 func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
@@ -228,13 +257,13 @@ func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, erro
 	}
 }
 
-func (s *Server) GetGamePlayers(ctx context.Context, in *pb.Game) (*pb.Players, error) {
+func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.Players, error) {
 
 	statement, err := s.db.Prepare("SELECT id, player, game FROM GamePlayers WHERE game=(?)")
 	if err != nil {
 		return nil, err
 	}
-	rows, err := statement.Query(in.GetName())
+	rows, err := statement.Query(in.GetId())
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +279,7 @@ func (s *Server) GetGamePlayers(ctx context.Context, in *pb.Game) (*pb.Players, 
 			return nil, err
 		}
 		out = append(out, &pb.Player{
-			Id: int64(id),
+			Id: int64(player),
 		})
 
 	}
@@ -260,43 +289,55 @@ func (s *Server) GetGamePlayers(ctx context.Context, in *pb.Game) (*pb.Players, 
 	return players, nil
 }
 
+
+// SetGamePlayers Sets the game players
 func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, error) {
-	fmt.Print("Game Players to add", g.GetPlayers().GetPlayers())
-	exists, err := s.GetGamePlayers(ctx, g)
+
+
+	// 1. Get existing players IDs in the game
+	existingIds, err := s.GetGamePlayersByGameId(ctx, g)
+
 	if err != nil {
 		return nil, err
 	}
 
-	pMap := map[int64]bool{}
-	// Get a map of all players requesting to be set
-	for _, id := range g.GetPlayers().GetPlayers() {
-		pMap[id.GetId()] = true
+	//2. Get Existing Player Records from the IDs
+	existingPlayerRecords, err := s.GetPlayers(ctx, existingIds)
+	if err != nil {
+		return nil, err
 	}
+	fmt.Println("Existing Players", existingPlayerRecords.GetPlayers())
+	// 2.a create a map of existing playerIds to the player record
+	existingPlayersMap := map[int64]*pb.Player{}
+	for _, p := range existingPlayerRecords.GetPlayers(){
+		existingPlayersMap[p.GetId()] = p
+	}
+	fmt.Println("Existing Players Map", existingPlayersMap)
 
-	// Get an ID of all the players that exist in the game and set the value to false so we know not to re-add them
-	for _, p := range exists.GetPlayers() {
-		if ok, _ := pMap[p.GetId()]; ok {
-			pMap[p.GetId()] = false
+	//3. Get the players requesting to be added to the game
+	playersToJoinRecords, err := s.GetPlayersByName(ctx, g.GetPlayers())
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Players to Join", playersToJoinRecords.GetPlayers())
+	// 3.a create a map of requesting playerIds to whether they should join
+	playersToJoinMap := map[int64]*pb.Player{}
+	for _, p := range playersToJoinRecords.GetPlayers(){
+		// Player is not already on the game list
+		if _, ok := existingPlayersMap[p.GetId()]; !ok{
+			playersToJoinMap[p.GetId()] = p
 		}
 	}
+	fmt.Println("Players to join Map", playersToJoinMap)
 
-	// Generate an output array of  negative intersection between the existing players and the players to be add
-	outMap := []int64{}
-	for _, p := range g.GetPlayers().GetPlayers() {
-		if ok, v := pMap[p.GetId()]; ok {
-			// if value is true then they do not already exist
-			if v {
-				outMap = append(outMap, p.GetId())
-			}
-		}
-	}
-	for _, toAdd := range outMap {
+	for _, shouldAdd := range playersToJoinMap {
+
 
 		statement, err := s.db.Prepare("INSERT INTO GamePlayers (player, game) VALUES(?, ?)")
 		if err != nil {
 			return nil, err
 		}
-		result, err := statement.Exec(toAdd, g.GetId())
+		result, err := statement.Exec(shouldAdd.GetId(), g.GetId())
 		if err != nil {
 			return nil, err
 		}
@@ -304,14 +345,15 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 		if err != nil {
 			return nil, err
 		}
+
 	}
-	players, err := s.GetGamePlayers(ctx, g)
+	players, err := s.GetGamePlayersByGameId(ctx, g)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Resulting PLayers", players.GetPlayers())
 	return players, err
 
-	return nil, nil
 }
 
 func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {

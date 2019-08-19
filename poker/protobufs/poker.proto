@@ -9,9 +9,10 @@ service Poker {
     rpc GetPlayerByName(Player) returns (Player){}
     rpc CreateGame(Game) returns (Game){}
     rpc GetGame(Game) returns (Game){}
-    rpc GetGamePlayers(Game) returns (Players){}
+    rpc GetGamePlayersByGameId(Game) returns (Players){}
     rpc GetGameByName(Game) returns (Game){}
     rpc SetGamePlayers(Game) returns (Players){}
+    rpc GetPlayersByName(Players) returns(Players){}
 }
 
 message Card {
