@@ -20,6 +20,8 @@ var (
 	ErrPlayerNameExists= fmt.Errorf("Player with that name already exists")
 	ErrEmptyPlayerName = fmt.Errorf("can not create player with empty name")
 	ErrInvalidPlayerCount = fmt.Errorf("can not create game with supplied count of players")
+	ErrGameNameExists= fmt.Errorf("game with that name already exists")
+	ErrEmptyGameName = fmt.Errorf("can not create game with empty name")
 )
 
 type Server struct {
@@ -39,7 +41,8 @@ func (s *Server) setupDatabase(name string) error {
 		return err
 	}
 
-	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY, name TEXT, chips INTEGER)")
+	// Setup Players table
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY, name TEXT, chips INTEGER, h1 TEXT, h2 TEXT)")
 	if err != nil {
 		return err
 	}
@@ -48,6 +51,28 @@ func (s *Server) setupDatabase(name string) error {
 	if err != nil {
 		return err
 	}
+
+	// Setup Game Players table
+	statement, err = database.Prepare("CREATE TABLE IF NOT EXISTS GamePlayers (id INTEGER PRIMARY KEY, player INTEGER, game INTEGER)")
+	if err != nil {
+		return err
+	}
+
+	_, err = statement.Exec()
+	if err != nil {
+		return err
+	}
+
+	statement, err = database.Prepare("CREATE TABLE IF NOT EXISTS Game (id INTEGER PRIMARY KEY,  name TEXT, dealer_slot INTEGER, big_slot INTEGER, small_slot INTEGER, small_amount INTEGER, f1 TEXT, f2 TEXT, f3 TEXT, f4 TEXT, f5 TEXT)")
+	if err != nil {
+		return err
+	}
+
+	_, err = statement.Exec()
+	if err != nil {
+		return err
+	}
+
 
 	s.db = database
 	return nil
@@ -157,12 +182,87 @@ func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player
 	}
 }
 
-func (s *Server) CreateGame(ctx context.Context, players *pb.Players) (*pb.Game, error) {
-	if len(players.GetPlayers())  > 8 || len(players.GetPlayers())  <3 {
-		return nil, ErrInvalidPlayerCount
-	}
-	return nil, nil
 
+func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
+	statement, err := s.db.Prepare("SELECT id, name FROM Game WHERE id=(?)")
+	if err != nil {return nil, err}
+	row  := statement.QueryRow(in.GetId())
+	var id int
+	var name string
+	switch err := row.Scan(&id, &name); err {
+	case sql.ErrNoRows:
+		return nil, nil
+	case nil:
+		return &pb.Game{
+			Id: int64(id),
+			Name: name,
+		}, nil
+	default:
+		return nil, err
+	}
+}
+
+
+func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
+	statement, err := s.db.Prepare("SELECT id, name FROM Game WHERE name=(?)")
+	if err != nil {return nil, err}
+	row  := statement.QueryRow(in.GetName())
+	var id int
+	var name string
+	switch err := row.Scan(&id, &name,); err {
+	case sql.ErrNoRows:
+		return nil, nil
+	case nil:
+		return &pb.Game{
+			Id: int64(id),
+			Name: name,
+		}, nil
+	default:
+		return nil, err
+	}
+}
+
+
+
+
+func (s *Server) GetGamePlayers(ctx context.Context, in *pb.Game) (*pb.Players, error) {
+	return nil, nil
+}
+
+
+func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+	if g.GetName() == ""{
+		return nil, ErrEmptyGameName
+	}
+
+	exists, err := s.GetGameByName(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	if exists != nil {
+		return nil, ErrGameNameExists
+	}
+
+	statement, err := s.db.Prepare("INSERT INTO Game (name) VALUES(?)")
+	if err != nil {
+		return nil, err
+	}
+	result, err := statement.Exec(g.GetName())
+	if err != nil {
+		return nil, err
+	}
+	insertedId, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	game, err := s.GetGame(ctx, &pb.Game{
+		Id:insertedId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return game, nil
 
 
 }

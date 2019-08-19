@@ -86,6 +86,14 @@ func TestServer_CreatePlayer(t *testing.T) {
 			},
 			ExpError: "rpc error: code = Unknown desc = can not create player with empty name",
 		},
+		{
+			Name: "Create player that already exists",
+			Player: &pb.Player{
+				Name:  "bob0",
+				Chips: 0,
+			},
+			ExpError: "rpc error: code = Unknown desc = Player with that name already exists",
+		},
 	}
 
 	for _, tt := range tests {
@@ -189,6 +197,59 @@ func TestServer_CreatePlayers(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, len(tt.Players.GetPlayers()), len(players.GetPlayers()))
+
+		})
+	}
+
+}
+
+
+
+func TestServer_CreateGame(t *testing.T) {
+
+
+	tests := []struct {
+		Name     string
+		Game   *pb.Game
+		ExpError string
+	}{
+		{
+			Name: "Create a game",
+			Game: &pb.Game{
+				Name:  "testgame0",
+			},
+			ExpError: "",
+		},
+		//{
+		//	Name: "Create game with empty name",
+		//	Game: &pb.Game{
+		//		Name:  "",
+		//	},
+		//	ExpError: "rpc error: code = Unknown desc = can not create game with empty name",
+		//},
+		//{
+		//	Name: "Create game that already exists",
+		//	Game: &pb.Game{
+		//		Name:  "testgame0",
+		//	},
+		//	ExpError: "rpc error: code = Unknown desc = game with that name already exists",
+		//},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			p, err := testClient.CreateGame(ctx, tt.Game)
+
+			if tt.ExpError != "" {
+				require.Equal(t, tt.ExpError, err.Error())
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.Game.GetName(), p.GetName())
 
 		})
 	}
