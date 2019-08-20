@@ -330,7 +330,6 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 		existingPlayersMap[p.GetId()] = p
 	}
 
-
 	//3. Get the players requesting to be added to the game
 	playersToJoinRecords, err := s.GetPlayersByName(ctx, g.GetPlayers())
 	if err != nil {
@@ -347,17 +346,8 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	}
 
 	for _, shouldAdd := range playersToJoinMap {
-
-		statement, err := s.db.Prepare("INSERT INTO game_players (player, game) VALUES(?, ?)")
-		if err != nil {
-			return nil, err
-		}
-		result, err := statement.Exec(shouldAdd.GetId(), g.GetId())
-		if err != nil {
-			return nil, err
-		}
-		_, err = result.LastInsertId()
-		if err != nil {
+		toCreate := &GamePlayers{Player: shouldAdd.GetId(), Game: g.GetId()}
+		if err := s.gormDb.Create(toCreate).Error; err != nil {
 			return nil, err
 		}
 
@@ -399,19 +389,18 @@ func (s *Server) SitGamePlayers(ctx context.Context, g *pb.Game) (*pb.Game, erro
 }
 
 func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, error) {
-	statement, err := s.db.Prepare("UPDATE Players SET slot=VALUE(?) WHERE id=VALUE(?)")
-	if err != nil {
+
+	out := &Player{
+		Model: gorm.Model{
+			ID: uint(p.GetId()),
+		},
+	}
+	if err := s.gormDb.Where("id = ?", p.GetSlot(), p.GetId()).Find(out).Update(
+		"slot", p.GetSlot()).Error; err != nil {
 		return nil, err
 	}
-	result, err := statement.Exec(p.GetSlot(), p.GetId())
-	if err != nil {
-		return nil, err
-	}
-	_, err = result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-	p, err = s.GetPlayer(ctx, p)
+
+	p, err := s.GetPlayer(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -431,23 +420,14 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, ErrGameNameExists
 	}
 
-	statement, err := s.db.Prepare("INSERT INTO Games (name) VALUES(?)")
-	if err != nil {
-
-		return nil, err
+	toCreate := &Game{
+		Name: g.GetName(),
 	}
-	result, err := statement.Exec(g.GetName())
-	if err != nil {
-		return nil, err
-	}
-	insertedId, err := result.LastInsertId()
-	if err != nil {
+	if err := s.gormDb.Create(toCreate).Error; err != nil {
 		return nil, err
 	}
 
-	game, err := s.GetGame(ctx, &pb.Game{
-		Id: insertedId,
-	})
+	game, err := s.GetGameByName(ctx, g)
 	if err != nil {
 		return nil, err
 	}
