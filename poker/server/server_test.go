@@ -528,3 +528,110 @@ func TestServer_SetPlayerSlot(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_AllocateGameSlots(t *testing.T) {
+
+	tests := []struct {
+		Name            string
+		PlayersToCreate *pb.Players
+		GameToCreate    *pb.Game
+		ExpError        string
+	}{
+		{
+			Name: "Create game players",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: []*pb.Player{
+					{
+						Name:  "bob333",
+						Chips: 0,
+					},
+					{
+						Name:  "jim333",
+						Chips: 0,
+					},
+					{
+						Name:  "fred333",
+						Chips: 0,
+					},
+					{
+						Name:  "cam333",
+						Chips: 0,
+					},
+					{
+						Name:  "tim333",
+						Chips: 0,
+					},
+				},
+			},
+			GameToCreate: &pb.Game{
+				Name: "testgame3",
+				Players: &pb.Players{
+					Players: []*pb.Player{
+						// all are new players
+						{
+							Name:  "bob333",
+							Chips: 0,
+						},
+						{
+							Name:  "jim333",
+							Chips: 0,
+						},
+						{
+							Name:  "fred333",
+							Chips: 0,
+						},
+						{
+							Name:  "cam333",
+							Chips: 0,
+						},
+						{
+							Name:  "tim333",
+							Chips: 0,
+						},
+					},
+				},
+			},
+
+			ExpError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
+			require.NoError(t, err)
+			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
+			// Create the initial game
+			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
+			require.NoError(t, err)
+
+			game.Players = tt.GameToCreate.GetPlayers()
+
+			// Set the initial game players
+			_, err = testClient.SetGamePlayers(ctx, game)
+			require.NoError(t, err)
+
+			// validate the number of initial players is correct
+			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+
+			// get the game
+			gameToAllocate, err := testClient.GetGame(ctx, game)
+			require.NoError(t, err)
+			allocatedGame, err := testClient.AllocateGameSlots(ctx, gameToAllocate)
+			require.NoError(t, err)
+			// Validate all slots were allocated
+			for _, p := range allocatedGame.GetPlayers().GetPlayers() {
+				slot := p.GetSlot()
+				assert.Greater(t, slot, int64(0))
+				assert.Less(t, slot, int64(9))
+			}
+
+		})
+	}
+}

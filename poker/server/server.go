@@ -178,6 +178,7 @@ func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Playe
 			Id:    int64(inp.ID),
 			Name:  inp.Name,
 			Chips: inp.Chips,
+			Slot:  inp.Slot,
 		})
 
 	}
@@ -248,9 +249,27 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
+	// Hydrate players
+	playersId, err := s.GetGamePlayersByGameId(ctx, &pb.Game{Id: int64(g.ID)})
+
+	if err != nil {
+		return nil, err
+	}
+
+	players, err := s.GetPlayers(ctx, playersId)
+	fmt.Println("Players iD", players.GetPlayers())
+	if err != nil {
+		return nil, err
+	}
 	return &pb.Game{
-		Id:   int64(g.ID),
-		Name: g.Name,
+		Id:      int64(g.ID),
+		Name:    g.Name,
+		Players: players,
+		Small:   g.Small,
+		Big:     g.Big,
+		Dealer:  g.Dealer,
+		// TODO hyrdate Deck and Flop
+
 	}, nil
 }
 
@@ -388,13 +407,37 @@ func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, e
 		return nil, err
 	}
 
-	p, err := s.GetPlayer(ctx, p)
+	player, err := s.GetPlayer(ctx, p)
 	if err != nil {
 		return nil, err
 	}
-	return p, nil
+	fmt.Println("Slot set", player.GetSlot())
+	return player, nil
 
 }
+
+func (s *Server) AllocateGameSlots(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+
+	players := g.GetPlayers().GetPlayers()
+	for i, p := range players {
+		if i > 8 {
+			return nil, ErrInvalidPlayerCount
+		}
+		slot := i + 1
+		p.Slot = int64(slot)
+		_, err := s.SetPlayerSlot(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+	}
+	out, err := s.GetGame(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Game returned", out.GetPlayers().GetPlayers())
+	return out, nil
+}
+
 func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	if g.GetName() == "" {
 		return nil, ErrEmptyGameName
@@ -409,7 +452,16 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	}
 
 	toCreate := &Game{
-		Name: g.GetName(),
+		Name:   g.GetName(),
+		Dealer: g.GetDealer(),
+		Big:    g.GetBig(),
+		Small:  g.GetSmall(),
+		MinBet: g.GetMin(),
+		f1:     g.GetFlop().GetOne().String(),
+		f2:     g.GetFlop().GetFour().String(),
+		f3:     g.GetFlop().GetThree().String(),
+		f4:     g.GetFlop().GetFour().String(),
+		f5:     g.GetFlop().GetFive().String(),
 	}
 	if err := s.gormDb.Create(toCreate).Error; err != nil {
 		return nil, err

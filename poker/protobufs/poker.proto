@@ -88,11 +88,13 @@ message Game {
     Players players = 1;
     string name = 2;
 
+    // button positions
     int64 id = 9;
     int64 small = 10;
     int64 big = 11;
-    int64 Dealer = 12;
+    int64 dealer = 12;
     repeated Card deck = 13;
     Flop flop = 15;
+    int64 min =16; // small blind amount
 }
 //   protoc -I poker/ poker/protobufs/poker.proto --go_out=plugins=grpc:poker
