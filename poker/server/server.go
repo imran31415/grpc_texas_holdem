@@ -34,6 +34,7 @@ type Player struct {
 	gorm.Model
 	Name  string
 	Chips int64
+	Slot  int64
 	H1    string
 	H2    string
 }
@@ -149,6 +150,7 @@ func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, erro
 		Id:    int64(p.ID),
 		Name:  p.Name,
 		Chips: int64(p.Chips),
+		Slot:  int64(p.Slot),
 	}, nil
 }
 
@@ -376,7 +378,8 @@ func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, e
 			ID: uint(p.GetId()),
 		},
 	}
-	if err := s.gormDb.Where("id = ?", p.GetSlot(), p.GetId()).Find(out).Update(
+
+	if err := s.gormDb.Where("id = ?", p.GetId()).Find(out).Update(
 		"slot", p.GetSlot()).Error; err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"imran/poker/client"
 	"log"
 	"math/rand"
@@ -25,6 +26,7 @@ var (
 	testConnection *grpc.ClientConn
 )
 
+// Reuse the test database/connections across tests
 func init() {
 	rand.Seed(time.Now().Unix())
 	testDatabase = fmt.Sprintf("test_%s_%d", "Players", rand.Int63())
@@ -408,6 +410,118 @@ func TestServer_SetGamePlayers(t *testing.T) {
 			players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
 			require.NoError(t, err)
 			require.Equal(t, tt.FinalNumOfPlayers, len(players.GetPlayers()))
+
+		})
+	}
+}
+
+
+
+func TestServer_SetPlayerSlot(t *testing.T) {
+
+	tests := []struct {
+		Name               string
+		PlayersToCreate    *pb.Players
+		GameToCreate       *pb.Game
+		ExpError           string
+	}{
+		{
+			Name: "Create game players",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: []*pb.Player{
+					{
+						Name:  "bob33",
+						Chips: 0,
+					},
+					{
+						Name:  "jim33",
+						Chips: 0,
+					},
+					{
+						Name:  "fred33",
+						Chips: 0,
+					},
+					{
+						Name:  "cam33",
+						Chips: 0,
+					},
+					{
+						Name:  "tim33",
+						Chips: 0,
+					},
+				},
+			},
+			GameToCreate: &pb.Game{
+				Name: "testgame2",
+				Players: &pb.Players{
+					Players: []*pb.Player{
+						// all are new players
+						{
+							Name:  "bob33",
+							Chips: 0,
+						},
+						{
+							Name:  "jim33",
+							Chips: 0,
+						},
+						{
+							Name:  "fred33",
+							Chips: 0,
+						},
+						{
+							Name:  "cam33",
+							Chips: 0,
+						},
+						{
+							Name:  "tim33",
+							Chips: 0,
+						},
+					},
+				},
+			},
+
+			ExpError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
+			require.NoError(t, err)
+			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
+			// Create the initial game
+			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
+			require.NoError(t, err)
+
+			game.Players = tt.GameToCreate.GetPlayers()
+
+			// Set the initial game players
+			_, err = testClient.SetGamePlayers(ctx, game)
+			require.NoError(t, err)
+
+			// validate the number of initial players is correct
+			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+
+			// get a player
+			player := players.GetPlayers()[0]
+			// slot should be empty
+			assert.Equal(t, int64(0), player.GetSlot())
+			// Set the slot to 1 position
+			player.Slot= 1
+
+			player, err = testClient.SetPlayerSlot(ctx, player)
+			require.NoError(t, err)
+			// get player
+			player, err = testClient.GetPlayer(ctx, &pb.Player{Id:player.GetId()})
+			require.NoError(t, err)
+			// Slot should now be 1
+			assert.Equal(t, int64(1), player.GetSlot())
 
 		})
 	}
