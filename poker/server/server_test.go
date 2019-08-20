@@ -320,7 +320,6 @@ func TestServer_SetGamePlayers(t *testing.T) {
 							Name:  "tim3",
 							Chips: 0,
 						},
-
 					},
 				},
 			},
@@ -340,7 +339,6 @@ func TestServer_SetGamePlayers(t *testing.T) {
 							Name:  "jim3",
 							Chips: 0,
 						},
-
 					},
 				},
 			},
@@ -368,7 +366,6 @@ func TestServer_SetGamePlayers(t *testing.T) {
 
 			ExpError: "",
 		},
-
 	}
 
 	for _, tt := range tests {
@@ -383,7 +380,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
 			require.NoError(t, err)
 
-			game.Players= tt.GameToCreate.GetPlayers()
+			game.Players = tt.GameToCreate.GetPlayers()
 
 			// Set the initial game players
 			_, err = testClient.SetGamePlayers(ctx, game)

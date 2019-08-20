@@ -126,8 +126,8 @@ func (s *Server) CreatePlayer(ctx context.Context, p *pb.Player) (*pb.Player, er
 		return nil, ErrPlayerNameExists
 	}
 
-	toCreate := &Player{Name:p.GetName(), Chips:p.GetChips()}
-	if err := s.gormDb.Create(toCreate).Error; err != nil  {
+	toCreate := &Player{Name: p.GetName(), Chips: p.GetChips()}
+	if err := s.gormDb.Create(toCreate).Error; err != nil {
 		return nil, err
 	}
 
@@ -159,7 +159,6 @@ func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, erro
 	p := &Player{
 		Model: gorm.Model{
 			ID: uint(in.GetId()),
-
 		},
 	}
 
@@ -179,7 +178,7 @@ func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Playe
 
 	ids := []int64{}
 
-	for _, n := range players.GetPlayers(){
+	for _, n := range players.GetPlayers() {
 		ids = append(ids, n.GetId())
 		outs = append(outs, Player{
 			Model: gorm.Model{
@@ -194,8 +193,8 @@ func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Playe
 	// TODO switch this to be 1 query
 	for _, inp := range outs {
 		out.Players = append(out.Players, &pb.Player{
-			Id: int64(inp.ID),
-			Name: inp.Name,
+			Id:    int64(inp.ID),
+			Name:  inp.Name,
 			Chips: inp.Chips,
 		})
 
@@ -208,13 +207,13 @@ func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player
 		return nil, ErrEmptyPlayerName
 	}
 	p := &Player{
-		Name:in.GetName(),
+		Name: in.GetName(),
 	}
 
 	s.gormDb.Where("name", []string{"jinzhu", "jinzhu 2"}).Find(&p)
 	if err := s.gormDb.Where("name = ?", in.GetName()).Find(&p).Error; err != nil && err == gorm.ErrRecordNotFound {
 		return &pb.Player{}, nil
-	} else if err != nil && err != gorm.ErrRecordNotFound{
+	} else if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 
 	} else {
@@ -233,10 +232,10 @@ func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb
 
 	names := []string{}
 
-	for _, n := range players.GetPlayers(){
+	for _, n := range players.GetPlayers() {
 		names = append(names, n.GetName())
 		outs = append(outs, Player{
-			Name:n.GetName(),
+			Name: n.GetName(),
 		})
 	}
 	s.gormDb.Where("name IN (?)", names).Find(&outs)
@@ -245,8 +244,8 @@ func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb
 	// TODO switch this to be 1 query
 	for _, inp := range outs {
 		out.Players = append(out.Players, &pb.Player{
-			Id: int64(inp.ID),
-			Name: inp.Name,
+			Id:    int64(inp.ID),
+			Name:  inp.Name,
 			Chips: inp.Chips,
 		})
 
@@ -257,8 +256,8 @@ func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb
 
 func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	g := &Game{
-		Model:gorm.Model{
-			ID:uint(in.GetId()),
+		Model: gorm.Model{
+			ID: uint(in.GetId()),
 		},
 	}
 
@@ -270,16 +269,15 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	return &pb.Game{
 		Id:   int64(g.ID),
 		Name: g.Name,
-
 	}, nil
 }
 
 func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	g := Game{
-		Name:in.GetName(),
+		Name: in.GetName(),
 	}
 
-	if err :=  s.gormDb.Where("name = ?", in.GetName()).Find(&g).Error; err != nil && err != gorm.ErrRecordNotFound {
+	if err := s.gormDb.Where("name = ?", in.GetName()).Find(&g).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return nil, nil
@@ -287,16 +285,13 @@ func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, erro
 	return &pb.Game{
 		Id:   int64(g.ID),
 		Name: g.Name,
-
 	}, nil
 }
 
 func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.Players, error) {
 	gp := []GamePlayers{
-		{Game:in.GetId()},
-
+		{Game: in.GetId()},
 	}
-
 
 	if err := s.gormDb.Where("game = ?", in.GetId()).Find(&gp).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
@@ -304,11 +299,10 @@ func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.P
 		return nil, nil
 	}
 
-
 	out := &pb.Players{}
-	for _, pId := range gp{
+	for _, pId := range gp {
 		out.Players = append(out.Players, &pb.Player{
-			Id:int64(pId.Player),
+			Id: int64(pId.Player),
 		})
 	}
 
