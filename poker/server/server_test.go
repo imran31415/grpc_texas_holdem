@@ -507,19 +507,23 @@ func TestServer_SetPlayerSlot(t *testing.T) {
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
 
 			// get a player
-			player := players.GetPlayers()[0]
-			// slot should be empty
-			assert.Equal(t, int64(0), player.GetSlot())
-			// Set the slot to 1 position
-			player.Slot = 1
 
-			player, err = testClient.SetPlayerSlot(ctx, player)
-			require.NoError(t, err)
-			// get player
-			player, err = testClient.GetPlayer(ctx, &pb.Player{Id: player.GetId()})
-			require.NoError(t, err)
-			// Slot should now be 1
-			assert.Equal(t, int64(1), player.GetSlot())
+			for i, player := range players.GetPlayers() {
+				slot := i + 1
+				// slot should be empty
+				assert.Equal(t, int64(0), player.GetSlot())
+				// Set the slot to 1 position
+				player.Slot = int64(slot)
+
+				player, err = testClient.SetPlayerSlot(ctx, player)
+				require.NoError(t, err)
+				// get player
+				player, err = testClient.GetPlayer(ctx, &pb.Player{Id: player.GetId()})
+				require.NoError(t, err)
+				// Slot should now be 1
+				assert.Equal(t, int64(slot), player.GetSlot())
+
+			}
 
 		})
 	}

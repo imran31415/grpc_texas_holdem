@@ -24,6 +24,7 @@ var (
 	ErrGameNameExists     = fmt.Errorf("game with that name already exists")
 	ErrEmptyGameName      = fmt.Errorf("can not create game with empty name")
 	ErrTooManyPlayers     = fmt.Errorf("too many players to create game")
+	ErrInvalidSlotNumber  = fmt.Errorf("slot value invalid must be between 1-8")
 )
 
 type Server struct {
@@ -372,6 +373,9 @@ func (s *Server) SitGamePlayers(ctx context.Context, g *pb.Game) (*pb.Game, erro
 }
 
 func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, error) {
+	if p.GetSlot() > 8 || p.GetSlot() < 1 {
+		return nil, ErrInvalidSlotNumber
+	}
 
 	out := &Player{
 		Model: gorm.Model{
