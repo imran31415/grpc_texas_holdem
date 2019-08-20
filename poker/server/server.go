@@ -2,14 +2,12 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"log"
 	"net"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc"
 	pb "imran/poker/protobufs"
 )
@@ -29,7 +27,6 @@ var (
 )
 
 type Server struct {
-	db     *sql.DB
 	gormDb *gorm.DB
 }
 
@@ -69,7 +66,6 @@ func NewServer(name string) (*Server, error) {
 
 func (s *Server) setupDatabase(name string) error {
 
-	database, err := sql.Open("sqlite3", fmt.Sprintf("./%s.db", name))
 	db, err := gorm.Open("sqlite3", fmt.Sprintf("./%s.db", name))
 
 	// Setup Players table
@@ -90,24 +86,7 @@ func (s *Server) setupDatabase(name string) error {
 		return err
 	}
 
-	s.db = database
 	s.gormDb = db
-	return nil
-}
-
-func (s *Server) teardownTable(name string) error {
-	st := fmt.Sprintf("DROP TABLE IF EXISTS %s", name)
-
-	statement, err := s.db.Prepare(st)
-	if err != nil {
-		return err
-	}
-
-	_, err = statement.Exec(name)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
