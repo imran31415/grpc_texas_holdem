@@ -19,6 +19,8 @@ service Poker {
     // allocate slots based on the players in a game
     // TODO: Define server method
     rpc AllocateGameSlots(Game) returns (Game){}
+    rpc SetButtonPositions(Game) returns (Game){}
+    rpc SetGameBet(Game) returns (Game){}
 }
 
 message Card {

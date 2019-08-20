@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"log"
+	"math/rand"
 	"net"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -25,6 +26,7 @@ var (
 	ErrEmptyGameName      = fmt.Errorf("can not create game with empty name")
 	ErrTooManyPlayers     = fmt.Errorf("too many players to create game")
 	ErrInvalidSlotNumber  = fmt.Errorf("slot value invalid must be between 1-8")
+	ErrGameDoesntExist    = fmt.Errorf("the game requesting to be updated does not exist")
 )
 
 type Server struct {
@@ -52,7 +54,7 @@ type Game struct {
 	Dealer int64
 	Big    int64
 	Small  int64
-	MinBet int64
+	Min    int64
 	f1     string
 	f2     string
 	f3     string
@@ -71,19 +73,19 @@ func (s *Server) setupDatabase(name string) error {
 	db, err := gorm.Open("sqlite3", fmt.Sprintf("./%s.db", name))
 
 	// Setup Players table
-	db.CreateTable(&Player{})
+	db.AutoMigrate(&Player{})
 	if err != nil {
 		return err
 	}
 
 	// Setup DbGame Players table
-	db.CreateTable(&GamePlayers{})
+	db.AutoMigrate(&GamePlayers{})
 	if err != nil {
 		return err
 	}
 
 	// Setup DbGame  table
-	db.CreateTable(&Game{})
+	db.AutoMigrate(&Game{})
 	if err != nil {
 		return err
 	}
@@ -247,7 +249,7 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	if err := s.gormDb.Where("id = (?)", in.GetId()).Find(g).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	} else if err != nil && err == gorm.ErrRecordNotFound {
-		return nil, nil
+		return nil, ErrGameDoesntExist
 	}
 	// Hydrate players
 	playersId, err := s.GetGamePlayersByGameId(ctx, &pb.Game{Id: int64(g.ID)})
@@ -257,20 +259,23 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	}
 
 	players, err := s.GetPlayers(ctx, playersId)
-	fmt.Println("Players iD", players.GetPlayers())
 	if err != nil {
 		return nil, err
 	}
-	return &pb.Game{
+
+	game := &pb.Game{
 		Id:      int64(g.ID),
 		Name:    g.Name,
 		Players: players,
 		Small:   g.Small,
 		Big:     g.Big,
 		Dealer:  g.Dealer,
+		Min:     g.Min,
 		// TODO hyrdate Deck and Flop
 
-	}, nil
+	}
+
+	return game, nil
 }
 
 func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
@@ -430,6 +435,25 @@ func (s *Server) AllocateGameSlots(ctx context.Context, g *pb.Game) (*pb.Game, e
 			return nil, err
 		}
 	}
+	dealerPos := rand.Intn(len(players)) + 1
+
+	var smallPos int
+	var bigPos int
+
+	if dealerPos+1 > len(players) {
+		smallPos = 1
+		bigPos = 2
+	} else {
+		smallPos = dealerPos + 1
+	}
+
+	if smallPos+1 > len(players) {
+		bigPos = 1
+	}
+	g.Dealer = int64(dealerPos)
+	g.Big = int64(bigPos)
+	g.Small = int64(smallPos)
+
 	out, err := s.GetGame(ctx, g)
 	if err != nil {
 		return nil, err
@@ -456,7 +480,7 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		Dealer: g.GetDealer(),
 		Big:    g.GetBig(),
 		Small:  g.GetSmall(),
-		MinBet: g.GetMin(),
+		Min:    g.GetMin(),
 		f1:     g.GetFlop().GetOne().String(),
 		f2:     g.GetFlop().GetFour().String(),
 		f3:     g.GetFlop().GetThree().String(),
@@ -472,6 +496,71 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, err
 	}
 	return game, nil
+
+}
+
+func (s *Server) SetButtonPositions(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+	if g.GetName() == "" {
+		return nil, ErrEmptyGameName
+	}
+
+	game, err := s.GetGame(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	if game == nil {
+		return nil, ErrGameDoesntExist
+	}
+	fmt.Println("MIN TO SET", g.GetMin())
+	fmt.Println("THEGAME", game)
+
+	toUpdate := Game{
+		Min:    g.GetMin(),
+		Dealer: g.GetDealer(),
+		Big:    g.GetBig(),
+		Small:  g.GetSmall(),
+	}
+
+	if err := s.gormDb.Where("id = ?", game.GetId()).Find(game).Updates(toUpdate).Error; err != nil {
+		return nil, err
+	}
+
+	out, err := s.GetGame(ctx, g)
+	fmt.Println("MIN AFTER", out.GetMin())
+
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+
+}
+
+func (s *Server) SetGameBet(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+	if g.GetName() == "" {
+		return nil, ErrEmptyGameName
+	}
+
+	game, err := s.GetGame(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	if game == nil {
+		return nil, ErrGameDoesntExist
+	}
+
+	toUp := &Game{
+		Model: gorm.Model{ID: uint(game.GetId())},
+		Min:   g.GetMin(),
+	}
+	if err := s.gormDb.Update(toUp).Error; err != nil {
+		return nil, err
+	}
+
+	out, err := s.GetGame(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 
 }
 
