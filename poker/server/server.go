@@ -186,7 +186,7 @@ func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Playe
 			},
 		})
 	}
-	fmt.Println("OUTS", fmt.Sprintf("%+v", outs))
+
 	s.gormDb.Where("id IN (?)", ids).Find(&outs)
 	out := &pb.Players{}
 
@@ -324,13 +324,12 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("SetGamePayers! \n")
 	// 2.a create a map of existing playerIds to the player record
 	existingPlayersMap := map[int64]*pb.Player{}
 	for _, p := range existingPlayerRecords.GetPlayers() {
 		existingPlayersMap[p.GetId()] = p
 	}
-	fmt.Println("Existing Players Map", existingPlayersMap)
+
 
 	//3. Get the players requesting to be added to the game
 	playersToJoinRecords, err := s.GetPlayersByName(ctx, g.GetPlayers())
@@ -346,7 +345,6 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 			playersToJoinMap[p.GetId()] = p
 		}
 	}
-	fmt.Println("Players to join Map", playersToJoinMap)
 
 	for _, shouldAdd := range playersToJoinMap {
 
@@ -368,7 +366,6 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Resulting PLayers", fmt.Sprintf("%+v", players))
 	return players, err
 
 }
@@ -388,7 +385,6 @@ func (s *Server) SitGamePlayers(ctx context.Context, g *pb.Game) (*pb.Game, erro
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Existing Players", existingPlayerRecords.GetPlayers())
 
 	if len(existingPlayerRecords.GetPlayers()) > 8 || len(existingPlayerRecords.GetPlayers()) < 2 {
 		return nil, ErrInvalidPlayerCount
