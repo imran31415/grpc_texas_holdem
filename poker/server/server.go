@@ -4,11 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/jinzhu/gorm"
+	"log"
+	"net"
+
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc"
 	pb "imran/poker/protobufs"
-	"log"
-	"net"
 )
 
 const (
@@ -17,7 +20,7 @@ const (
 )
 
 var (
-	ErrPlayerNameExists   = fmt.Errorf("Player with that name already exists")
+	ErrPlayerNameExists   = fmt.Errorf("player with that name already exists")
 	ErrEmptyPlayerName    = fmt.Errorf("can not create player with empty name")
 	ErrInvalidPlayerCount = fmt.Errorf("can not create game with supplied count of players")
 	ErrGameNameExists     = fmt.Errorf("game with that name already exists")
@@ -26,7 +29,36 @@ var (
 )
 
 type Server struct {
-	db *sql.DB
+	db     *sql.DB
+	gormDb *gorm.DB
+}
+
+type Player struct {
+	gorm.Model
+	Name  string
+	Chips int64
+	H1    string
+	H2    string
+}
+
+type GamePlayers struct {
+	gorm.Model
+	Player int64
+	Game   int64
+}
+
+type Game struct {
+	gorm.Model
+	Name   string
+	Dealer int64
+	Big    int64
+	Small  int64
+	MinBet int64
+	f1     string
+	f2     string
+	f3     string
+	f4     string
+	f5     string
 }
 
 func NewServer(name string) (*Server, error) {
@@ -38,43 +70,28 @@ func NewServer(name string) (*Server, error) {
 func (s *Server) setupDatabase(name string) error {
 
 	database, err := sql.Open("sqlite3", fmt.Sprintf("./%s.db", name))
-	if err != nil {
-		return err
-	}
+	db, err := gorm.Open("sqlite3", fmt.Sprintf("./%s.db", name))
 
 	// Setup Players table
-	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY, name TEXT, chips INTEGER, h1 TEXT, h2 TEXT)")
+	db.CreateTable(&Player{})
 	if err != nil {
 		return err
 	}
 
-	_, err = statement.Exec()
+	// Setup DbGame Players table
+	db.CreateTable(&GamePlayers{})
 	if err != nil {
 		return err
 	}
 
-	// Setup Game Players table
-	statement, err = database.Prepare("CREATE TABLE IF NOT EXISTS GamePlayers (id INTEGER PRIMARY KEY, player INTEGER, game INTEGER)")
-	if err != nil {
-		return err
-	}
-
-	_, err = statement.Exec()
-	if err != nil {
-		return err
-	}
-
-	statement, err = database.Prepare("CREATE TABLE IF NOT EXISTS Game (id INTEGER PRIMARY KEY,  name TEXT, dealer_slot INTEGER, big_slot INTEGER, small_slot INTEGER, small_amount INTEGER, f1 TEXT, f2 TEXT, f3 TEXT, f4 TEXT, f5 TEXT)")
-	if err != nil {
-		return err
-	}
-
-	_, err = statement.Exec()
+	// Setup DbGame  table
+	db.CreateTable(&Game{})
 	if err != nil {
 		return err
 	}
 
 	s.db = database
+	s.gormDb = db
 	return nil
 }
 
@@ -100,27 +117,22 @@ func (s *Server) CreatePlayer(ctx context.Context, p *pb.Player) (*pb.Player, er
 	}
 
 	exists, err := s.GetPlayerByName(ctx, p)
+
 	if err != nil {
 		return nil, err
 	}
-	if exists != nil {
+
+	if exists.GetId() != 0 {
 		return nil, ErrPlayerNameExists
 	}
 
-	statement, err := s.db.Prepare("INSERT INTO Players (name, chips) VALUES (?, ?)")
-	if err != nil {
+	toCreate := &Player{Name:p.GetName(), Chips:p.GetChips()}
+	if err := s.gormDb.Create(toCreate).Error; err != nil  {
 		return nil, err
 	}
-	result, err := statement.Exec(p.GetName(), p.GetChips())
-	if err != nil {
-		return nil, err
-	}
-	insertedId, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
+
 	player, err := s.GetPlayer(ctx, &pb.Player{
-		Id: insertedId,
+		Id: int64(toCreate.Model.ID),
 	})
 	if err != nil {
 		return nil, err
@@ -143,71 +155,100 @@ func (s *Server) CreatePlayers(ctx context.Context, players *pb.Players) (*pb.Pl
 }
 
 func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, error) {
-	statement, err := s.db.Prepare("SELECT id, name, chips FROM Players WHERE id=(?)")
-	if err != nil {
-		return nil, err
+
+	p := &Player{
+		Model: gorm.Model{
+			ID: uint(in.GetId()),
+
+		},
 	}
-	row := statement.QueryRow(in.GetId())
-	var id, chips int
-	var name string
-	switch err := row.Scan(&id, &name, &chips); err {
-	case sql.ErrNoRows:
-		return nil, nil
-	case nil:
-		return &pb.Player{
-			Id:    int64(id),
-			Name:  name,
-			Chips: int64(chips),
-		}, nil
-	default:
+
+	if err := s.gormDb.Where("id = ?", uint(in.GetId())).First(&p).Error; err != nil {
 		return nil, err
+
 	}
+	return &pb.Player{
+		Id:    int64(p.ID),
+		Name:  p.Name,
+		Chips: int64(p.Chips),
+	}, nil
 }
 
 func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Players, error) {
+	outs := []Player{}
+
+	ids := []int64{}
+
+	for _, n := range players.GetPlayers(){
+		ids = append(ids, n.GetId())
+		outs = append(outs, Player{
+			Model: gorm.Model{
+				ID: uint(n.GetId()),
+			},
+		})
+	}
+	fmt.Println("OUTS", fmt.Sprintf("%+v", outs))
+	s.gormDb.Where("id IN (?)", ids).Find(&outs)
 	out := &pb.Players{}
-	for _, in := range players.GetPlayers() {
-		p, err := s.GetPlayer(ctx, in)
-		if err != nil {
-			return nil, err
-		}
-		out.Players = append(out.GetPlayers(), p)
+
+	// TODO switch this to be 1 query
+	for _, inp := range outs {
+		out.Players = append(out.Players, &pb.Player{
+			Id: int64(inp.ID),
+			Name: inp.Name,
+			Chips: inp.Chips,
+		})
+
 	}
 	return out, nil
 }
 
 func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player, error) {
-	statement, err := s.db.Prepare("SELECT id, name, chips FROM Players WHERE name=(?)")
-	if err != nil {
-		return nil, err
+	if in.Name == "" {
+		return nil, ErrEmptyPlayerName
 	}
-	row := statement.QueryRow(in.GetName())
-	var id, chips int
-	var name string
-	switch err := row.Scan(&id, &name, &chips); err {
-	case sql.ErrNoRows:
-		return nil, nil
-	case nil:
-		return &pb.Player{
-			Id:    int64(id),
-			Name:  name,
-			Chips: int64(chips),
-		}, nil
-	default:
+	p := &Player{
+		Name:in.GetName(),
+	}
+
+	s.gormDb.Where("name", []string{"jinzhu", "jinzhu 2"}).Find(&p)
+	if err := s.gormDb.Where("name = ?", in.GetName()).Find(&p).Error; err != nil && err == gorm.ErrRecordNotFound {
+		return &pb.Player{}, nil
+	} else if err != nil && err != gorm.ErrRecordNotFound{
 		return nil, err
+
+	} else {
+
+		return &pb.Player{
+			Id:    int64(p.ID),
+			Name:  p.Name,
+			Chips: int64(p.Chips),
+		}, nil
 	}
 }
 
 func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb.Players, error) {
 
+	outs := []Player{}
+
+	names := []string{}
+
+	for _, n := range players.GetPlayers(){
+		names = append(names, n.GetName())
+		outs = append(outs, Player{
+			Name:n.GetName(),
+		})
+	}
+	s.gormDb.Where("name IN (?)", names).Find(&outs)
 	out := &pb.Players{}
+
 	// TODO switch this to be 1 query
-	for _, in := range players.GetPlayers() {
-		p, err := s.GetPlayerByName(ctx, in)
-		if err != nil {
-			return nil, err
-		}
-		out.Players = append(out.GetPlayers(), p)
+	for _, inp := range outs {
+		out.Players = append(out.Players, &pb.Player{
+			Id: int64(inp.ID),
+			Name: inp.Name,
+			Chips: inp.Chips,
+		})
 
 	}
 	return out, nil
@@ -215,77 +256,63 @@ func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb
 }
 
 func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
-	statement, err := s.db.Prepare("SELECT id, name FROM Game WHERE id=(?)")
-	if err != nil {
-		return nil, err
+	g := &Game{
+		Model:gorm.Model{
+			ID:uint(in.GetId()),
+		},
 	}
-	row := statement.QueryRow(in.GetId())
-	var id int
-	var name string
-	switch err := row.Scan(&id, &name); err {
-	case sql.ErrNoRows:
+
+	if err := s.gormDb.Where("id = (?)", in.GetId()).Find(g).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return nil, nil
-	case nil:
-		return &pb.Game{
-			Id:   int64(id),
-			Name: name,
-		}, nil
-	default:
-		return nil, err
 	}
+	return &pb.Game{
+		Id:   int64(g.ID),
+		Name: g.Name,
+
+	}, nil
 }
 
 func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
-	statement, err := s.db.Prepare("SELECT id, name FROM Game WHERE name=(?)")
-	if err != nil {
-		return nil, err
+	g := Game{
+		Name:in.GetName(),
 	}
-	row := statement.QueryRow(in.GetName())
-	var id int
-	var name string
-	switch err := row.Scan(&id, &name); err {
-	case sql.ErrNoRows:
+
+	if err :=  s.gormDb.Where("name = ?", in.GetName()).Find(&g).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return nil, nil
-	case nil:
-		return &pb.Game{
-			Id:   int64(id),
-			Name: name,
-		}, nil
-	default:
-		return nil, err
 	}
+	return &pb.Game{
+		Id:   int64(g.ID),
+		Name: g.Name,
+
+	}, nil
 }
 
 func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.Players, error) {
+	gp := []GamePlayers{
+		{Game:in.GetId()},
 
-	statement, err := s.db.Prepare("SELECT id, player, game FROM GamePlayers WHERE game=(?)")
-	if err != nil {
-		return nil, err
 	}
-	rows, err := statement.Query(in.GetId())
-	if err != nil {
-		return nil, err
-	}
-	out := []*pb.Player{}
 
-	if err != nil {
+
+	if err := s.gormDb.Where("game = ?", in.GetId()).Find(&gp).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
+		return nil, nil
 	}
-	var id, player, game int
-	for rows.Next() {
-		err = rows.Scan(&id, &player, &game)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, &pb.Player{
-			Id: int64(player),
+
+
+	out := &pb.Players{}
+	for _, pId := range gp{
+		out.Players = append(out.Players, &pb.Player{
+			Id:int64(pId.Player),
 		})
+	}
 
-	}
-	players := &pb.Players{
-		Players: out,
-	}
-	return players, nil
+	return out, nil
 }
 
 // SetGamePlayers Sets the game players
@@ -303,7 +330,7 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Existing Players", existingPlayerRecords.GetPlayers())
+	fmt.Println("SetGamePayers! \n")
 	// 2.a create a map of existing playerIds to the player record
 	existingPlayersMap := map[int64]*pb.Player{}
 	for _, p := range existingPlayerRecords.GetPlayers() {
@@ -316,7 +343,7 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Players to Join", playersToJoinRecords.GetPlayers())
+
 	// 3.a create a map of requesting playerIds to whether they should join
 	playersToJoinMap := map[int64]*pb.Player{}
 	for _, p := range playersToJoinRecords.GetPlayers() {
@@ -329,7 +356,7 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 
 	for _, shouldAdd := range playersToJoinMap {
 
-		statement, err := s.db.Prepare("INSERT INTO GamePlayers (player, game) VALUES(?, ?)")
+		statement, err := s.db.Prepare("INSERT INTO game_players (player, game) VALUES(?, ?)")
 		if err != nil {
 			return nil, err
 		}
@@ -347,11 +374,60 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Resulting PLayers", players.GetPlayers())
+	fmt.Println("Resulting PLayers", fmt.Sprintf("%+v", players))
 	return players, err
 
 }
 
+// SitGamePlayers allocates players to the game slots
+func (s *Server) SitGamePlayers(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+
+	// 1. Get existing players IDs in the game
+	existingIds, err := s.GetGamePlayersByGameId(ctx, g)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Get Existing DbPlayer Records from the IDs
+	existingPlayerRecords, err := s.GetPlayers(ctx, existingIds)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Existing Players", existingPlayerRecords.GetPlayers())
+
+	if len(existingPlayerRecords.GetPlayers()) > 8 || len(existingPlayerRecords.GetPlayers()) < 2 {
+		return nil, ErrInvalidPlayerCount
+	}
+
+	for i, p := range existingPlayerRecords.GetPlayers() {
+		p.Slot = int64(i + 1)
+	}
+
+	return g, err
+
+}
+
+func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, error) {
+	statement, err := s.db.Prepare("UPDATE Players SET slot=VALUE(?) WHERE id=VALUE(?)")
+	if err != nil {
+		return nil, err
+	}
+	result, err := statement.Exec(p.GetSlot(), p.GetId())
+	if err != nil {
+		return nil, err
+	}
+	_, err = result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	p, err = s.GetPlayer(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+
+}
 func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	if g.GetName() == "" {
 		return nil, ErrEmptyGameName
@@ -365,8 +441,9 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, ErrGameNameExists
 	}
 
-	statement, err := s.db.Prepare("INSERT INTO Game (name) VALUES(?)")
+	statement, err := s.db.Prepare("INSERT INTO Games (name) VALUES(?)")
 	if err != nil {
+
 		return nil, err
 	}
 	result, err := statement.Exec(g.GetName())

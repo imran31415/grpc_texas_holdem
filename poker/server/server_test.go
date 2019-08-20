@@ -70,14 +70,14 @@ func TestServer_CreatePlayer(t *testing.T) {
 		Player   *pb.Player
 		ExpError string
 	}{
-		{
-			Name: "Create a player",
-			Player: &pb.Player{
-				Name:  "bob0",
-				Chips: 0,
-			},
-			ExpError: "",
-		},
+		//{
+		//	Name: "Create a player",
+		//	Player: &pb.Player{
+		//		Name:  "bob0",
+		//		Chips: 0,
+		//	},
+		//	ExpError: "",
+		//},
 		{
 			Name: "Create player with empty name",
 			Player: &pb.Player{
@@ -86,14 +86,14 @@ func TestServer_CreatePlayer(t *testing.T) {
 			},
 			ExpError: "rpc error: code = Unknown desc = can not create player with empty name",
 		},
-		{
-			Name: "Create player that already exists",
-			Player: &pb.Player{
-				Name:  "bob0",
-				Chips: 0,
-			},
-			ExpError: "rpc error: code = Unknown desc = Player with that name already exists",
-		},
+		//{
+		//	Name: "Create player that already exists",
+		//	Player: &pb.Player{
+		//		Name:  "bob0",
+		//		Chips: 0,
+		//	},
+		//	ExpError: "rpc error: code = Unknown desc = player with that name already exists",
+		//},
 	}
 
 	for _, tt := range tests {
@@ -129,23 +129,23 @@ func TestServer_CreatePlayers(t *testing.T) {
 			Players: &pb.Players{
 				Players: []*pb.Player{
 					{
-						Name:  "bob1",
+						Name:  "1bob1",
 						Chips: 0,
 					},
 					{
-						Name:  "jim1",
+						Name:  "1jim1",
 						Chips: 0,
 					},
 					{
-						Name:  "fred1",
+						Name:  "1fred1",
 						Chips: 0,
 					},
 					{
-						Name:  "cam1",
+						Name:  "1cam1",
 						Chips: 0,
 					},
 					{
-						Name:  "tim1",
+						Name:  "1tim1",
 						Chips: 0,
 					},
 				},
@@ -233,6 +233,7 @@ func TestServer_CreateGame(t *testing.T) {
 			defer cancel()
 
 			p, err := testClient.CreateGame(ctx, tt.Game)
+			fmt.Println("Error", err)
 
 			if tt.ExpError != "" {
 				require.Equal(t, tt.ExpError, err.Error())
@@ -261,6 +262,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 	}{
 		{
 			Name: "Create game players",
+			// These are all the players that will be referenced in the test
 			PlayersToCreate: &pb.Players{
 				Players: []*pb.Player{
 					{
@@ -297,6 +299,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 				Name: "testgame1",
 				Players: &pb.Players{
 					Players: []*pb.Player{
+						// all are new players
 						{
 							Name:  "bob3",
 							Chips: 0,
@@ -317,6 +320,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 							Name:  "tim3",
 							Chips: 0,
 						},
+
 					},
 				},
 			},
@@ -333,13 +337,10 @@ func TestServer_SetGamePlayers(t *testing.T) {
 							Chips: 0,
 						},
 						{
-							Name:  "cam3",
+							Name:  "jim3",
 							Chips: 0,
 						},
-						{
-							Name:  "tim3",
-							Chips: 0,
-						},
+
 					},
 				},
 			},
@@ -356,7 +357,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 							Chips: 0,
 						},
 						{
-							Name:  "jaimie", //new player
+							Name:  "jaimie", // New
 							Chips: 0,
 						},
 					},
@@ -380,9 +381,10 @@ func TestServer_SetGamePlayers(t *testing.T) {
 			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
 			// Create the initial game
 			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
-			game.Players = tt.GameToCreate.GetPlayers()
-
 			require.NoError(t, err)
+
+			game.Players= tt.GameToCreate.GetPlayers()
+
 			// Set the initial game players
 			_, err = testClient.SetGamePlayers(ctx, game)
 			require.NoError(t, err)

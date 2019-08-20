@@ -13,6 +13,9 @@ service Poker {
     rpc GetGameByName(Game) returns (Game){}
     rpc SetGamePlayers(Game) returns (Players){}
     rpc GetPlayersByName(Players) returns(Players){}
+    // Allocate players to a table slot.
+    rpc SitGamePlayers(Game) returns (Game){}
+    rpc SetPlayerSlot(Player) returns (Player){}
 }
 
 message Card {
@@ -56,6 +59,8 @@ message Player {
     string name = 2;
     int64 chips = 3;
     Hand hand = 4;
+    // What seat at the table they are at 1-8 only
+    int64 slot = 5;
 }
 
 message Players {
@@ -77,25 +82,14 @@ message Flop {
 
 
 message Game {
-    enum PlayerSlot {
-        slot_undefined = 0;
-        slot_one = 1;
-        slot_two = 2;
-        slot_three = 3;
-        slot_four = 4;
-        slot_five = 5;
-        slot_six = 6;
-        slot_seven = 7;
-        slot_eight = 8;
-    }
-
     Players players = 1;
     string name = 2;
 
     int64 id = 9;
-    PlayerSlot small = 10;
-    PlayerSlot big = 11;
-    PlayerSlot Dealer = 12;
+    int64 small = 10;
+    int64 big = 11;
+    int64 Dealer = 12;
     repeated Card deck = 13;
+    Flop flop = 15;
 }
 //   protoc -I poker/ poker/protobufs/poker.proto --go_out=plugins=grpc:poker
