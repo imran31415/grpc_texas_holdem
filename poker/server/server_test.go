@@ -415,15 +415,13 @@ func TestServer_SetGamePlayers(t *testing.T) {
 	}
 }
 
-
-
 func TestServer_SetPlayerSlot(t *testing.T) {
 
 	tests := []struct {
-		Name               string
-		PlayersToCreate    *pb.Players
-		GameToCreate       *pb.Game
-		ExpError           string
+		Name            string
+		PlayersToCreate *pb.Players
+		GameToCreate    *pb.Game
+		ExpError        string
 	}{
 		{
 			Name: "Create game players",
@@ -513,12 +511,12 @@ func TestServer_SetPlayerSlot(t *testing.T) {
 			// slot should be empty
 			assert.Equal(t, int64(0), player.GetSlot())
 			// Set the slot to 1 position
-			player.Slot= 1
+			player.Slot = 1
 
 			player, err = testClient.SetPlayerSlot(ctx, player)
 			require.NoError(t, err)
 			// get player
-			player, err = testClient.GetPlayer(ctx, &pb.Player{Id:player.GetId()})
+			player, err = testClient.GetPlayer(ctx, &pb.Player{Id: player.GetId()})
 			require.NoError(t, err)
 			// Slot should now be 1
 			assert.Equal(t, int64(1), player.GetSlot())
