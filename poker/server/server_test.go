@@ -70,14 +70,14 @@ func TestServer_CreatePlayer(t *testing.T) {
 		Player   *pb.Player
 		ExpError string
 	}{
-		//{
-		//	Name: "Create a player",
-		//	Player: &pb.Player{
-		//		Name:  "bob0",
-		//		Chips: 0,
-		//	},
-		//	ExpError: "",
-		//},
+		{
+			Name: "Create a player",
+			Player: &pb.Player{
+				Name:  "bob0",
+				Chips: 0,
+			},
+			ExpError: "",
+		},
 		{
 			Name: "Create player with empty name",
 			Player: &pb.Player{
@@ -86,14 +86,14 @@ func TestServer_CreatePlayer(t *testing.T) {
 			},
 			ExpError: "rpc error: code = Unknown desc = can not create player with empty name",
 		},
-		//{
-		//	Name: "Create player that already exists",
-		//	Player: &pb.Player{
-		//		Name:  "bob0",
-		//		Chips: 0,
-		//	},
-		//	ExpError: "rpc error: code = Unknown desc = player with that name already exists",
-		//},
+		{
+			Name: "Create player that already exists",
+			Player: &pb.Player{
+				Name:  "bob0",
+				Chips: 0,
+			},
+			ExpError: "rpc error: code = Unknown desc = player with that name already exists",
+		},
 	}
 
 	for _, tt := range tests {
