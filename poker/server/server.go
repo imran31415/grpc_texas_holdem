@@ -288,7 +288,9 @@ func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.P
 	return out, nil
 }
 
-// SetGamePlayers Sets the game players
+// SetGamePlayers Sets the game players.
+// This method is flexible so if there are existing players in the game
+// it will only add the difference (If the total number of players is less than 8)
 func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, error) {
 
 	// 1. Get existing players IDs in the game
