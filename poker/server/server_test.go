@@ -4,19 +4,19 @@ import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"imran/poker/client"
+	pb "imran/poker/protobufs"
+	"imran/poker/server"
+	"imran/poker/server/game_ring"
 	"log"
 	"math/rand"
 	"net"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	pb "imran/poker/protobufs"
-	"imran/poker/server"
-	"imran/poker/server/game_ring"
 )
 
 const dbName = "testDb"
@@ -25,7 +25,14 @@ var (
 	testClient     pb.PokerClient
 	testDatabase   string
 	testConnection *grpc.ClientConn
+	ops            uint64 = 0
 )
+
+// Useful for generating a unique id each time a test user is generated
+func getUniqueUser() string {
+	atomic.AddUint64(&ops, 1)
+	return fmt.Sprintf("testUser_%d", ops)
+}
 
 // Reuse the test database/connections across tests
 func init() {
@@ -67,6 +74,7 @@ func runTestServer(name string) {
 }
 
 func TestServer_CreatePlayer(t *testing.T) {
+	testPlayer := getUniqueUser()
 
 	tests := []struct {
 		Name     string
@@ -76,7 +84,7 @@ func TestServer_CreatePlayer(t *testing.T) {
 		{
 			Name: "Create a player",
 			Player: &pb.Player{
-				Name:  "bob0",
+				Name:  testPlayer,
 				Chips: 0,
 			},
 			ExpError: "",
@@ -92,7 +100,7 @@ func TestServer_CreatePlayer(t *testing.T) {
 		{
 			Name: "Create player that already exists",
 			Player: &pb.Player{
-				Name:  "bob0",
+				Name:  testPlayer,
 				Chips: 0,
 			},
 			ExpError: "rpc error: code = Unknown desc = player with that name already exists",
@@ -120,6 +128,52 @@ func TestServer_CreatePlayer(t *testing.T) {
 }
 
 func TestServer_CreatePlayers(t *testing.T) {
+
+	var playersSetA = []*pb.Player{
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+	}
+
+	var playersSetBOneEmpty = []*pb.Player{
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  "",
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	tests := []struct {
@@ -130,56 +184,14 @@ func TestServer_CreatePlayers(t *testing.T) {
 		{
 			Name: "Create players",
 			Players: &pb.Players{
-				Players: []*pb.Player{
-					{
-						Name:  "1bob1",
-						Chips: 0,
-					},
-					{
-						Name:  "1jim1",
-						Chips: 0,
-					},
-					{
-						Name:  "1fred1",
-						Chips: 0,
-					},
-					{
-						Name:  "1cam1",
-						Chips: 0,
-					},
-					{
-						Name:  "1tim1",
-						Chips: 0,
-					},
-				},
+				Players: playersSetA,
 			},
 			ExpError: "",
 		},
 		{
 			Name: "Create players with one as empty name",
 			Players: &pb.Players{
-				Players: []*pb.Player{
-					{
-						Name:  "bob2",
-						Chips: 0,
-					},
-					{
-						Name:  "jim2",
-						Chips: 0,
-					},
-					{
-						Name:  "", // should cause error
-						Chips: 0,
-					},
-					{
-						Name:  "cam2",
-						Chips: 0,
-					},
-					{
-						Name:  "tim2",
-						Chips: 0,
-					},
-				},
+				Players: playersSetBOneEmpty,
 			},
 			ExpError: "rpc error: code = Unknown desc = can not create player with empty name",
 		},
@@ -268,23 +280,23 @@ func TestServer_SetGamePlayers(t *testing.T) {
 			PlayersToCreate: &pb.Players{
 				Players: []*pb.Player{
 					{
-						Name:  "bob3",
+						Name:  "bob",
 						Chips: 0,
 					},
 					{
-						Name:  "jim3",
+						Name:  "jim",
 						Chips: 0,
 					},
 					{
-						Name:  "fred3",
+						Name:  "fred",
 						Chips: 0,
 					},
 					{
-						Name:  "cam3",
+						Name:  "cam",
 						Chips: 0,
 					},
 					{
-						Name:  "tim3",
+						Name:  "tim",
 						Chips: 0,
 					},
 					{
@@ -303,23 +315,23 @@ func TestServer_SetGamePlayers(t *testing.T) {
 					Players: []*pb.Player{
 						// all are new players
 						{
-							Name:  "bob3",
+							Name:  "bob",
 							Chips: 0,
 						},
 						{
-							Name:  "jim3",
+							Name:  "jim",
 							Chips: 0,
 						},
 						{
-							Name:  "fred3",
+							Name:  "fred",
 							Chips: 0,
 						},
 						{
-							Name:  "cam3",
+							Name:  "cam",
 							Chips: 0,
 						},
 						{
-							Name:  "tim3",
+							Name:  "tim",
 							Chips: 0,
 						},
 					},
@@ -334,11 +346,11 @@ func TestServer_SetGamePlayers(t *testing.T) {
 							Chips: 0,
 						},
 						{
-							Name:  "tim3",
+							Name:  "tim",
 							Chips: 0,
 						},
 						{
-							Name:  "jim3",
+							Name:  "jim",
 							Chips: 0,
 						},
 					},
@@ -353,7 +365,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 							Chips: 0,
 						},
 						{
-							Name:  "tim3",
+							Name:  "tim",
 							Chips: 0,
 						},
 						{
@@ -416,6 +428,28 @@ func TestServer_SetGamePlayers(t *testing.T) {
 }
 
 func TestServer_SetPlayerSlot(t *testing.T) {
+	var playersSetA = []*pb.Player{
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+	}
 
 	tests := []struct {
 		Name            string
@@ -424,58 +458,14 @@ func TestServer_SetPlayerSlot(t *testing.T) {
 		ExpError        string
 	}{
 		{
-			Name: "Create game players",
-			// These are all the players that will be referenced in the test
+			Name: "Create game and set player slots",
 			PlayersToCreate: &pb.Players{
-				Players: []*pb.Player{
-					{
-						Name:  "bob33",
-						Chips: 0,
-					},
-					{
-						Name:  "jim33",
-						Chips: 0,
-					},
-					{
-						Name:  "fred33",
-						Chips: 0,
-					},
-					{
-						Name:  "cam33",
-						Chips: 0,
-					},
-					{
-						Name:  "tim33",
-						Chips: 0,
-					},
-				},
+				Players: playersSetA,
 			},
 			GameToCreate: &pb.Game{
 				Name: "testgame2",
 				Players: &pb.Players{
-					Players: []*pb.Player{
-						// all are new players
-						{
-							Name:  "bob33",
-							Chips: 0,
-						},
-						{
-							Name:  "jim33",
-							Chips: 0,
-						},
-						{
-							Name:  "fred33",
-							Chips: 0,
-						},
-						{
-							Name:  "cam33",
-							Chips: 0,
-						},
-						{
-							Name:  "tim33",
-							Chips: 0,
-						},
-					},
+					Players: playersSetA,
 				},
 			},
 
@@ -640,7 +630,6 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 // and also tests the Game ring logic.
 func TestServer_SetButtonPositions(t *testing.T) {
 
-
 	var playersSetA = []*pb.Player{
 		{
 			Name:  "bob3333",
@@ -699,7 +688,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 		},
 	}
 
-	var playersSetC= []*pb.Player{
+	var playersSetC = []*pb.Player{
 		{
 			Name:  "bob3333412",
 			Chips: 0,

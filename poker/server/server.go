@@ -334,7 +334,6 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 		existingPlayersMap[p.GetId()] = p
 	}
 
-
 	//3. Get the players requesting to be added to the game
 	fmt.Println("Players to join count", g.GetPlayers().GetPlayers())
 

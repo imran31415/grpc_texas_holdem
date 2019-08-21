@@ -10,6 +10,7 @@ import (
 var ErrNilRingItems = fmt.Errorf("ring should not have nil items")
 var ErrIncorrectRingValueType = fmt.Errorf("unable to marshal value from ring")
 var ErrDealerNotSet = fmt.Errorf("dealer not set")
+
 // use a game ring to manage turns
 type GameRing struct {
 	*ring.Ring
@@ -37,7 +38,7 @@ func NewRing(g *pb.Game) (*GameRing, error) {
 		gr.next()
 	}
 
-	hasNil  := false
+	hasNil := false
 	// validate all slots are taken
 	r.Do(func(p interface{}) {
 		if p == nil {
