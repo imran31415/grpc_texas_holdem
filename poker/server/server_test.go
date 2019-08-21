@@ -39,6 +39,9 @@ func rpcError(s string) string {
 }
 
 // Reuse the test database/connections across tests
+// Since all tests share the same DB, we use atomic incr to gen names/ids for
+// players and games so we can ensure test cases do not conflict.
+// this should be kept in mind when writing tests
 func init() {
 	rand.Seed(time.Now().Unix())
 	testDatabase = fmt.Sprintf("test_%s_%d", "Players", rand.Int63())
@@ -52,14 +55,14 @@ func init() {
 func TestMain(m *testing.M) {
 
 	s := m.Run()
+	// Cleanup connections and remove test database
 	testConnection.Close()
 	os.Remove(fmt.Sprintf("./%s.db", testDatabase))
 	os.Exit(s)
 
 }
 
-// go test -v poker/server/server_test.go
-
+// runTestServer is the same server is used in all tests
 func runTestServer(name string) {
 	lis, err := net.Listen("tcp", server.Port)
 	if err != nil {
@@ -661,11 +664,12 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 }
 
 // TestServer_SetButtonPositions allocates players to slots
-// and also tests the Game ring logic.
-
+// and  tests the Game ring logic.
 // In the test we generate a game, allocate players and set positions.
 // Next we shift the dealer and validate the game ring logic appropriately
-// manages determining the correct small/big blind positions as well as getting info from the DB
+// manages determining the correct small/big blind positions and also
+// This process also tests that we are correctly serializing and de-serializing
+// game/player info relative to slots
 func TestServer_SetButtonPositions(t *testing.T) {
 
 	var playersSetA = []*pb.Player{
@@ -802,106 +806,122 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 			var game *pb.Game
-
+			// First create some players
 			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
 			fmt.Println("Created players, ", len(createdPlayers.GetPlayers()))
 			require.NoError(t, err)
 			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
+
 			// Create the initial game
 			game, err = testClient.CreateGame(ctx, tt.GameToCreate)
 			require.NoError(t, err)
-
 			game.Players = tt.GameToCreate.GetPlayers()
 
 			// Set the initial game players
 			_, err = testClient.SetGamePlayers(ctx, game)
 			require.NoError(t, err)
 
+			// Get the game from DB now that players are set
 			game, err = testClient.GetGame(ctx, game)
-			fmt.Println("Gamne players c", len(game.GetPlayers().GetPlayers()))
 
 			// validate the number of initial players is correct
+			// Check the player-game join table against what is expected
 			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
 			fmt.Println("Players count", len(players.GetPlayers()))
 			require.NoError(t, err)
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+			// check the serialized game has the correct number of players
+			require.Equal(t, len(game.GetPlayers().GetPlayers()), len(tt.GameToCreate.GetPlayers().GetPlayers()))
 
-			// get the game
-			gameToAllocate, err := testClient.GetGame(ctx, game)
-			require.NoError(t, err)
-			allocatedGame, err := testClient.AllocateGameSlots(ctx, gameToAllocate)
+			// allocate players to the game slots
+			game, err = testClient.AllocateGameSlots(ctx, game)
 			require.NoError(t, err)
 			// Validate all slots were allocated
-			for _, p := range allocatedGame.GetPlayers().GetPlayers() {
+			for _, p := range game.GetPlayers().GetPlayers() {
 				slot := p.GetSlot()
 				assert.Greater(t, slot, int64(0))
 				assert.Less(t, slot, int64(9))
 			}
-			allocatedGame.Min = int64(100)
 
-			g, err := testClient.SetButtonPositions(ctx, allocatedGame)
+			// TODO: create method to set this
+			game.Min = int64(100)
+
+			// Now that players are seated, set dealer position
+			game, err = testClient.SetButtonPositions(ctx, game)
 			require.NoError(t, err)
-			// Verify game is set.
-			assert.Equal(t, int64(100), g.GetMin())
+			// assert min is set.
+			assert.Equal(t, int64(100), game.GetMin())
 
-			// assert all positions are set
-			assert.NotEqual(t, 0, g.GetDealer())
+			// assert dealer is set
+			assert.Greater(t, int(game.GetDealer()), 0)
 
-			// get the game
-			readyGame, err := testClient.GetGame(ctx, allocatedGame)
-			require.NoError(t, err)
-			r, err := game_ring.NewRing(readyGame)
+			//--------------------------
+			// SECTION 2: Test game ring logic
+			// ------------------------
+
+			// Generate a gameRing and get the allocations
+			gameRing, err := game_ring.NewRing(game)
 			require.NoError(t, err)
 
 			// Get the dealer according to game ring
-			d, err := r.CurrentDealer()
-			require.NoError(t, err)
+			d, err := gameRing.CurrentDealer()
 			require.NoError(t, err)
 
 			// Get Small blind
-			err = r.CurrentSmallBlind()
+			err = gameRing.CurrentSmallBlind()
 			require.NoError(t, err)
-			s, err := r.MarshalValue()
+			s, err := gameRing.MarshalValue()
 			require.NoError(t, err)
 
 			// Get Big blind
-			err = r.CurrentBigBlind()
+			err = gameRing.CurrentBigBlind()
 			require.NoError(t, err)
-			b, err := r.MarshalValue()
+			b, err := gameRing.MarshalValue()
 			require.NoError(t, err)
 
-			// ensure the player returned's slot and the games dealer slot match
-			require.Equal(t, d.GetSlot(), readyGame.GetDealer())
+			//The dealer's slot according to the gamering should match
+			// the same slot as saved in the Game DB
+			require.Equal(t, d.GetSlot(), game.GetDealer())
 
 			// None of the slots should equal each other
+			// (since there are atl east 3 players in this test)
 			require.NotEqual(t, d.GetSlot(), b.GetSlot())
 			require.NotEqual(t, s.GetSlot(), b.GetSlot())
 			require.NotEqual(t, b.GetSlot(), s.GetSlot())
 
-			// Check the current dealer according to game ring Equals the games dealer.
-			d, err = r.CurrentDealer()
-			require.NoError(t, err)
-			r.Ring = r.Next()
-			player, ok := r.Value.(*pb.Player)
-			require.True(t, ok)
-			// Player next from the dealer should equal small blind
+			// The next sequence tests that the big/small are in the correct position
+			// relative to the dealer
 
-			//check bigblind
-			assert.Equal(t, s.GetSlot(), player.GetSlot())
-			r.Ring = r.Next()
-			player, ok = r.Value.(*pb.Player)
+			// Shift to current dealer
+			_, err = gameRing.CurrentDealer()
+			require.NoError(t, err)
+			// Get the player in the next position from the dealer
+			// Should be the small blind
+			gameRing.Ring = gameRing.Next()
+			player, ok := gameRing.Value.(*pb.Player)
 			require.True(t, ok)
-			// Player next from the dealer should equal small blind
+			assert.Equal(t, s.GetSlot(), player.GetSlot())
+
+			// The next one over should be big blind
+			gameRing.Ring = gameRing.Next()
+			player, ok = gameRing.Value.(*pb.Player)
+			require.True(t, ok)
 			assert.Equal(t, b.GetSlot(), player.GetSlot())
 
+			//-------------------------------
+			// SECTION 3: Simmulate a New round
+			//-------------------------------
 			// Update the DB that there is a new dealer
-			newDealerGame, err := testClient.NextDealer(ctx, readyGame)
+			game, err = testClient.NextDealer(ctx, game)
+
 			// Get the game ring for the game now that dealer has shifted
-			r2, err := game_ring.NewRing(newDealerGame)
+			r2, err := game_ring.NewRing(game)
 			require.NoError(t, err)
 			newDealer, err := r2.CurrentDealer()
 			//validate the next dealer matches between the one set in the game and in the game ring
 			assert.Equal(t, r2.GetDealer(), newDealer.GetSlot())
+
+			// The new dealer should equal the small blind from the last round
 			assert.Equal(t, newDealer.GetSlot(), s.GetSlot())
 
 			// validate the new big and small blinds are different after dealer has switched.
@@ -912,7 +932,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			require.NoError(t, err)
 			assert.NotEqual(t, s2.GetId(), s.GetId())
 
-			// Get Big blind
+			// validate big blind matches between game ring allocation and game db
 			err = r2.CurrentBigBlind()
 			require.NoError(t, err)
 			b2, err := r2.MarshalValue()
