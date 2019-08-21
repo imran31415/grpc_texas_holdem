@@ -8,13 +8,14 @@
 
 ```go run poker/server/server_test.go```
 
-####  Get coverage:
+####  Get test coverage:
 
 From within `server/` package:
 ```bash
 go test -coverprofile=coverage.out 
 go tool cover -func=coverage.out
 go tool cover -html=coverage.out
+rm coverage.out
 ```
 
 #### Run Commands

@@ -992,3 +992,151 @@ func TestServer_SetButtonPositionsErrors(t *testing.T) {
 		})
 	}
 }
+
+
+
+// ValidatePreGame returns an error if the game is invalid
+// Invalid reasons are
+//  1. Not enough, or too many players
+//  2. Slots are allocated to players incorrectly
+//  3. Button positions and bet is not set.
+func TestServer_ValidatePreGame(t *testing.T) {
+
+	var playersSetA = []*pb.Player{
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+	}
+	var playersSetB = []*pb.Player{
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+	}
+	tests := []struct {
+		Name            string
+		PlayersToCreate *pb.Players
+		GameToCreate    *pb.Game
+		AllocateSlots   bool
+		AllocateMinBet  bool
+		AllocateDealer  bool
+		ExpError        string
+	}{
+		{
+			Name: "Test a validly set game",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: playersSetA,
+			},
+			GameToCreate: &pb.Game{
+				Name: getUniqueName(),
+				Players: &pb.Players{
+					Players: playersSetA,
+				},
+			},
+			AllocateSlots : true,
+			AllocateMinBet: true,
+			AllocateDealer: true,
+			ExpError: "",
+		},
+
+
+		{
+			Name: "Test invalid, slots not allocated",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: playersSetB,
+			},
+			GameToCreate: &pb.Game{
+				Name: getUniqueName(),
+				Players: &pb.Players{
+					Players: playersSetB,
+				},
+			},
+			AllocateSlots : false,
+			AllocateMinBet: true,
+			AllocateDealer: true,
+			ExpError: server.ErrInvalidSlotNumber.Error(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			var game *pb.Game
+			// First create some players
+			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
+			fmt.Println("Created players, ", len(createdPlayers.GetPlayers()))
+			require.NoError(t, err)
+			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
+
+			// Create the initial game
+			game, err = testClient.CreateGame(ctx, tt.GameToCreate)
+			require.NoError(t, err)
+			game.Players = tt.GameToCreate.GetPlayers()
+
+			// Set the initial game players
+			_, err = testClient.SetGamePlayers(ctx, game)
+			require.NoError(t, err)
+
+			// Get the game from DB now that players are set
+			game, err = testClient.GetGame(ctx, game)
+
+			// allocate players to the game slots
+
+			if tt.AllocateSlots {
+				game, err = testClient.AllocateGameSlots(ctx, game)
+				require.NoError(t, err)
+			}
+
+			if tt.AllocateMinBet {
+				game.Min = int64(100)
+			}
+
+			if tt. AllocateDealer {
+				// Now that players are seated, set dealer position and min bet
+				game, err = testClient.SetButtonPositions(ctx, game)
+				require.NoError(t, err)
+			}
+
+			game, err = testClient.ValidatePreGame(ctx, game)
+			if err != nil {
+				require.Equal(t, rpcError(tt.ExpError),  err.Error())
+			}
+		})
+	}
+}
