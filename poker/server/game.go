@@ -14,7 +14,7 @@ type GameRing struct {
 
 // NewGameRing generates a ring data type using the players in a game.
 // This makes it easy to traverse through players and determine
-// who is dealer/
+// who is dealer, big, small, or who is next in turn
 func NewGameRing(g *pb.Game) *GameRing {
 	// construct game ring:
 
@@ -24,7 +24,7 @@ func NewGameRing(g *pb.Game) *GameRing {
 		Ring: r,
 		Game: g,
 	}
-
+	// ensure we allocate players to the rin in correct order
 	sort.Slice(players, func(i, j int) bool {
 		return players[i].GetSlot() < players[j].GetSlot()
 	})
