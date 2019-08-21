@@ -12,6 +12,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"google.golang.org/grpc"
 	pb "imran/poker/protobufs"
+	"imran/poker/server/game_ring"
 )
 
 const (
@@ -30,8 +31,6 @@ var (
 	ErrGameDoesntExist         = fmt.Errorf("the game requesting to be updated does not exist")
 	ErrInvalidButtonAllocation = fmt.Errorf("buttons are not allocated correctly")
 	ErrNoBetSet                = fmt.Errorf("no bet set for game")
-	ErrIncorrectRingValueType  = fmt.Errorf("invalid ring value type")
-	ErrDealerNotSet            = fmt.Errorf("dealer not set")
 )
 
 type Server struct {
@@ -335,11 +334,15 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 		existingPlayersMap[p.GetId()] = p
 	}
 
+
 	//3. Get the players requesting to be added to the game
+	fmt.Println("Players to join count", g.GetPlayers().GetPlayers())
+
 	playersToJoinRecords, err := s.GetPlayersByName(ctx, g.GetPlayers())
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("players to join", len(playersToJoinRecords.GetPlayers()))
 
 	// 3.a create a map of requesting playerIds to whether they should join
 	playersToJoinMap := map[int64]*pb.Player{}
@@ -515,7 +518,7 @@ func (s *Server) NextDealer(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, ErrGameDoesntExist
 	}
 
-	r, err := NewGameRing(g)
+	r, err := game_ring.NewRing(g)
 	if err != nil {
 		return nil, err
 	}

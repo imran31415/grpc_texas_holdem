@@ -1,4 +1,4 @@
-package server
+package game_ring
 
 import (
 	"container/ring"
@@ -8,16 +8,18 @@ import (
 )
 
 var ErrNilRingItems = fmt.Errorf("ring should not have nil items")
+var ErrIncorrectRingValueType = fmt.Errorf("unable to marshal value from ring")
+var ErrDealerNotSet = fmt.Errorf("dealer not set")
 // use a game ring to manage turns
 type GameRing struct {
 	*ring.Ring
 	*pb.Game
 }
 
-// NewGameRing generates a ring data type using the players in a game.
+// NewRing generates a ring data type using the players in a game.
 // This makes it easy to traverse through players and determine
 // who is dealer, big, small, or who is next in turn
-func NewGameRing(g *pb.Game) (*GameRing, error) {
+func NewRing(g *pb.Game) (*GameRing, error) {
 	// construct game ring:
 
 	players := g.GetPlayers().GetPlayers()

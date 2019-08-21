@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc"
 	pb "imran/poker/protobufs"
 	"imran/poker/server"
+	"imran/poker/server/game_ring"
 )
 
 const dbName = "testDb"
@@ -635,7 +636,83 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 	}
 }
 
+// TestServer_SetButtonPositions allocates players to slots
+// and also tests the Game ring logic.
 func TestServer_SetButtonPositions(t *testing.T) {
+
+
+	var playersSetA = []*pb.Player{
+		{
+			Name:  "bob3333",
+			Chips: 0,
+		},
+		{
+			Name:  "jim3333",
+			Chips: 0,
+		},
+		{
+			Name:  "fred3333",
+			Chips: 0,
+		},
+		{
+			Name:  "cam3333",
+			Chips: 0,
+		},
+		{
+			Name:  "tim3333",
+			Chips: 0,
+		},
+	}
+
+	var playersSetB = []*pb.Player{
+		{
+			Name:  "bob333341",
+			Chips: 0,
+		},
+		{
+			Name:  "jim333341",
+			Chips: 0,
+		},
+		{
+			Name:  "fred333341",
+			Chips: 0,
+		},
+		{
+			Name:  "cam333341",
+			Chips: 0,
+		},
+		{
+			Name:  "tim333341",
+			Chips: 0,
+		},
+		{
+			Name:  "sam333341",
+			Chips: 0,
+		},
+		{
+			Name:  "sarah333341",
+			Chips: 0,
+		},
+		{
+			Name:  "joe333341",
+			Chips: 0,
+		},
+	}
+
+	var playersSetC= []*pb.Player{
+		{
+			Name:  "bob3333412",
+			Chips: 0,
+		},
+		{
+			Name:  "jim3333411",
+			Chips: 0,
+		},
+		{
+			Name:  "fred3333411",
+			Chips: 0,
+		},
+	}
 
 	tests := []struct {
 		Name            string
@@ -647,55 +724,43 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			Name: "Create game players",
 			// These are all the players that will be referenced in the test
 			PlayersToCreate: &pb.Players{
-				Players: []*pb.Player{
-					{
-						Name:  "bob3333",
-						Chips: 0,
-					},
-					{
-						Name:  "jim3333",
-						Chips: 0,
-					},
-					{
-						Name:  "fred3333",
-						Chips: 0,
-					},
-					{
-						Name:  "cam3333",
-						Chips: 0,
-					},
-					{
-						Name:  "tim3333",
-						Chips: 0,
-					},
-				},
+				Players: playersSetA,
 			},
 			GameToCreate: &pb.Game{
 				Name: "testgame4",
 				Players: &pb.Players{
-					Players: []*pb.Player{
-						// all are new players
-						{
-							Name:  "bob3333",
-							Chips: 0,
-						},
-						{
-							Name:  "jim3333",
-							Chips: 0,
-						},
-						{
-							Name:  "fred3333",
-							Chips: 0,
-						},
-						{
-							Name:  "cam3333",
-							Chips: 0,
-						},
-						{
-							Name:  "tim3333",
-							Chips: 0,
-						},
-					},
+					Players: playersSetA,
+				},
+			},
+
+			ExpError: "",
+		},
+		{
+			Name: "Create game players",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: playersSetB,
+			},
+			GameToCreate: &pb.Game{
+				Name: "testgame5",
+				Players: &pb.Players{
+					Players: playersSetB,
+				},
+			},
+
+			ExpError: "",
+		},
+
+		{
+			Name: "Create game players",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: playersSetC,
+			},
+			GameToCreate: &pb.Game{
+				Name: "testgame6",
+				Players: &pb.Players{
+					Players: playersSetC,
 				},
 			},
 
@@ -707,12 +772,14 @@ func TestServer_SetButtonPositions(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
+			var game *pb.Game
 
 			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
+			fmt.Println("Created players, ", len(createdPlayers.GetPlayers()))
 			require.NoError(t, err)
 			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
 			// Create the initial game
-			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
+			game, err = testClient.CreateGame(ctx, tt.GameToCreate)
 			require.NoError(t, err)
 
 			game.Players = tt.GameToCreate.GetPlayers()
@@ -721,8 +788,12 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			_, err = testClient.SetGamePlayers(ctx, game)
 			require.NoError(t, err)
 
+			game, err = testClient.GetGame(ctx, game)
+			fmt.Println("Gamne players c", len(game.GetPlayers().GetPlayers()))
+
 			// validate the number of initial players is correct
 			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			fmt.Println("Players count", len(players.GetPlayers()))
 			require.NoError(t, err)
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
 
@@ -750,7 +821,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			// get the game
 			readyGame, err := testClient.GetGame(ctx, allocatedGame)
 			require.NoError(t, err)
-			r, err := server.NewGameRing(readyGame)
+			r, err := game_ring.NewRing(readyGame)
 			require.NoError(t, err)
 
 			// Get the dealer according to game ring
@@ -796,10 +867,9 @@ func TestServer_SetButtonPositions(t *testing.T) {
 
 			nextDealerGame, err := testClient.NextDealer(ctx, readyGame)
 			// Get the game ring for the game now that dealer has shifted
-			r2, err := server.NewGameRing(nextDealerGame)
+			r2, err := game_ring.NewRing(nextDealerGame)
 			require.NoError(t, err)
 			newDealer, err := r2.CurrentDealer()
-
 			//validate the next dealer matches between the one set in the game and in the game ring
 			assert.Equal(t, r2.GetDealer(), newDealer.GetSlot())
 			assert.Equal(t, newDealer.GetSlot(), s.GetSlot())
