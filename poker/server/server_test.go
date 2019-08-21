@@ -235,7 +235,6 @@ func TestServer_CreateGame(t *testing.T) {
 			defer cancel()
 
 			p, err := testClient.CreateGame(ctx, tt.Game)
-			fmt.Println("Error", err)
 
 			if tt.ExpError != "" {
 				require.Equal(t, tt.ExpError, err.Error())
@@ -739,6 +738,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 				assert.Less(t, slot, int64(9))
 			}
 			allocatedGame.Min = int64(100)
+
 			g, err := testClient.SetButtonPositions(ctx, allocatedGame)
 			require.NoError(t, err)
 			// Verify game is set.
@@ -746,6 +746,61 @@ func TestServer_SetButtonPositions(t *testing.T) {
 
 			// assert all positions are set
 			assert.NotEqual(t, 0, g.GetDealer())
+
+			// get the game
+			readyGame, err := testClient.GetGame(ctx, allocatedGame)
+			require.NoError(t, err)
+			r := server.NewGameRing(readyGame)
+
+			// Get the dealer according to game ring
+			d, err := r.CurrentDealer()
+			require.NoError(t, err)
+			require.NoError(t, err)
+
+			// Get Small blind
+			err = r.CurrentSmallBlind()
+			require.NoError(t, err)
+			s, err := r.MarshalValue()
+			require.NoError(t, err)
+
+			// Get Big blind
+			err = r.CurrentBigBlind()
+			require.NoError(t, err)
+			b, err := r.MarshalValue()
+			require.NoError(t, err)
+
+			// ensure the player returned's slot and the games dealer slot match
+			require.Equal(t, d.GetSlot(), readyGame.GetDealer())
+
+			// None of the slots should equal each other
+			require.NotEqual(t, d.GetSlot(), b.GetSlot())
+			require.NotEqual(t, s.GetSlot(), b.GetSlot())
+			require.NotEqual(t, b.GetSlot(), s.GetSlot())
+
+			// Check the current dealer according to game ring Equals the games dealer.
+			d, err = r.CurrentDealer()
+			require.NoError(t, err)
+			r.Ring = r.Next()
+			player, ok := r.Value.(*pb.Player)
+			require.True(t, ok)
+			// Player next from the dealer should equal small blind
+
+			//check bigblind
+			assert.Equal(t, s.GetSlot(), player.GetSlot())
+			r.Ring = r.Next()
+			player, ok = r.Value.(*pb.Player)
+			require.True(t, ok)
+			// Player next from the dealer should equal small blind
+			assert.Equal(t, b.GetSlot(), player.GetSlot())
+
+			nextDealerGame, err := testClient.NextDealer(ctx, readyGame)
+			// Get the game ring for the game now that dealer has shifted
+			r2 := server.NewGameRing(nextDealerGame)
+			newDealer, err := r2.CurrentDealer()
+
+			//validate the next dealer matches between the one set in the game and in the game ring
+			assert.Equal(t, r2.GetDealer(), newDealer.GetSlot())
+			assert.Equal(t, newDealer.GetSlot(), s.GetSlot())
 
 		})
 	}

@@ -20,8 +20,8 @@ service Poker {
     // TODO: Define server method
     rpc AllocateGameSlots(Game) returns (Game){}
     rpc SetButtonPositions(Game) returns (Game){}
-    rpc SetGameBet(Game) returns (Game){}
     rpc ValidatePreGame(Game) returns (Game){}
+    rpc NextDealer(Game) returns (Game){}
 }
 
 message Card {
@@ -67,6 +67,8 @@ message Player {
     Hand hand = 4;
     // What seat at the table they are at 1-8 only
     int64 slot = 5;
+    // Whether they are in a hand
+    bool in_hand = 6;
 }
 
 message Players {
@@ -88,14 +90,32 @@ message Flop {
 
 
 message Game {
+
     Players players = 1;
     string name = 2;
 
     // button positions
-    int64 id = 9;
-    int64 dealer = 12;
-    repeated Card deck = 13;
-    Flop flop = 15;
-    int64 min =16; // small blind amount
+    int64 id = 3;
+    int64 dealer = 4;
+    int64 min = 5;
+    Round round = 6;
+}
+
+// any info here is only relevant within a particular hand
+message Round {
+    enum Status {
+        NOT_STARTED = 0; // No betting
+        PRE_FLOP = 1;    // first round of betting is happening
+        FLOP = 2;        // second round of betting
+        RIVER = 3;       // third round of betting
+        TURN = 4;        // final round of betting
+        SHOW = 5;        // All bets are closed and we show any hands remaining
+        OVER = 6;        // Winner has been determined and chips have been disbursed
+    }
+    Status status = 1;
+    Flop flop = 2;
+
+    repeated Card deck = 3;
+
 }
 //   protoc -I poker/ poker/protobufs/poker.proto --go_out=plugins=grpc:poker

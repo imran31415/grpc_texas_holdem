@@ -31,6 +31,7 @@ var (
 	ErrInvalidButtonAllocation = fmt.Errorf("buttons are not allocated correctly")
 	ErrNoBetSet                = fmt.Errorf("no bet set for game")
 	ErrIncorrectRingValueType  = fmt.Errorf("invalid ring value type")
+	ErrDealerNotSet            = fmt.Errorf("dealer not set")
 )
 
 type Server struct {
@@ -52,7 +53,7 @@ type GamePlayers struct {
 	Game   int64
 }
 
-type Game struct {
+type Games struct {
 	gorm.Model
 	Name   string
 	Dealer int64
@@ -73,22 +74,18 @@ func NewServer(name string) (*Server, error) {
 func (s *Server) setupDatabase(name string) error {
 
 	db, err := gorm.Open("sqlite3", fmt.Sprintf("./%s.db", name))
-
+	if err != nil {
+		return err
+	}
 	// Setup Players table
-	db.AutoMigrate(&Player{})
-	if err != nil {
+	if err := db.AutoMigrate(&Player{}).Error; err != nil {
 		return err
 	}
 
-	// Setup DbGame Players table
-	db.AutoMigrate(&GamePlayers{})
-	if err != nil {
+	if err := db.AutoMigrate(&GamePlayers{}).Error; err != nil {
 		return err
 	}
-
-	// Setup DbGame  table
-	db.AutoMigrate(&Game{})
-	if err != nil {
+	if err := db.AutoMigrate(&Games{}).Error; err != nil {
 		return err
 	}
 
@@ -176,7 +173,6 @@ func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Playe
 	s.gormDb.Where("id IN (?)", ids).Find(&outs)
 	out := &pb.Players{}
 
-	// TODO switch this to be 1 query
 	for _, inp := range outs {
 		out.Players = append(out.Players, &pb.Player{
 			Id:    int64(inp.ID),
@@ -242,7 +238,7 @@ func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb
 }
 
 func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
-	g := &Game{
+	g := &Games{
 		Model: gorm.Model{
 			ID: uint(in.GetId()),
 		},
@@ -253,6 +249,7 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return nil, ErrGameDoesntExist
 	}
+
 	// Hydrate players
 	playersId, err := s.GetGamePlayersByGameId(ctx, &pb.Game{Id: int64(g.ID)})
 
@@ -279,7 +276,7 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 }
 
 func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
-	g := Game{
+	g := Games{
 		Name: in.GetName(),
 	}
 
@@ -416,7 +413,6 @@ func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Slot set", player.GetSlot())
 	return player, nil
 
 }
@@ -435,14 +431,12 @@ func (s *Server) AllocateGameSlots(ctx context.Context, g *pb.Game) (*pb.Game, e
 			return nil, err
 		}
 	}
-	dealerPos := rand.Intn(len(players)) + 1
-	g.Dealer = int64(dealerPos)
 
 	out, err := s.GetGame(ctx, g)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Game returned", out.GetPlayers().GetPlayers())
+
 	return out, nil
 }
 
@@ -459,15 +453,10 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, ErrGameNameExists
 	}
 
-	toCreate := &Game{
+	toCreate := &Games{
 		Name:   g.GetName(),
 		Dealer: g.GetDealer(),
 		Min:    g.GetMin(),
-		f1:     g.GetFlop().GetOne().String(),
-		f2:     g.GetFlop().GetFour().String(),
-		f3:     g.GetFlop().GetThree().String(),
-		f4:     g.GetFlop().GetFour().String(),
-		f5:     g.GetFlop().GetFive().String(),
 	}
 	if err := s.gormDb.Create(toCreate).Error; err != nil {
 		return nil, err
@@ -493,12 +482,11 @@ func (s *Server) SetButtonPositions(ctx context.Context, g *pb.Game) (*pb.Game, 
 	if game == nil {
 		return nil, ErrGameDoesntExist
 	}
-	fmt.Println("MIN TO SET", g.GetMin())
-	fmt.Println("THEGAME", game)
 
-	toUpdate := Game{
-		Min:    g.GetMin(),
-		Dealer: g.GetDealer(),
+	toUpdate := Games{
+		Min: g.GetMin(),
+		// Randomly allocate a dealer
+		Dealer: int64(rand.Intn(len(game.GetPlayers().GetPlayers()))) + 1,
 	}
 
 	if err := s.gormDb.Where("id = ?", game.GetId()).Find(game).Updates(toUpdate).Error; err != nil {
@@ -506,7 +494,6 @@ func (s *Server) SetButtonPositions(ctx context.Context, g *pb.Game) (*pb.Game, 
 	}
 
 	out, err := s.GetGame(ctx, g)
-	fmt.Println("MIN AFTER", out.GetMin())
 
 	if err != nil {
 		return nil, err
@@ -515,7 +502,7 @@ func (s *Server) SetButtonPositions(ctx context.Context, g *pb.Game) (*pb.Game, 
 
 }
 
-func (s *Server) SetGameBet(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+func (s *Server) NextDealer(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	if g.GetName() == "" {
 		return nil, ErrEmptyGameName
 	}
@@ -528,15 +515,27 @@ func (s *Server) SetGameBet(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, ErrGameDoesntExist
 	}
 
-	toUp := &Game{
-		Model: gorm.Model{ID: uint(game.GetId())},
-		Min:   g.GetMin(),
+	r := NewGameRing(g)
+
+	err = r.CurrentSmallBlind()
+	if err != nil {
+		return nil, err
 	}
-	if err := s.gormDb.Update(toUp).Error; err != nil {
+
+	newDealer, err := r.MarshalValue()
+
+	toUpdate := Games{
+		Min: g.GetMin(),
+		// Randomly allocate a dealer
+		Dealer: newDealer.GetSlot(),
+	}
+
+	if err := s.gormDb.Where("id = ?", game.GetId()).Find(game).Updates(toUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	out, err := s.GetGame(ctx, g)
+
 	if err != nil {
 		return nil, err
 	}
