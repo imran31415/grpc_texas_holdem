@@ -335,13 +335,11 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	}
 
 	//3. Get the players requesting to be added to the game
-	fmt.Println("Players to join count", g.GetPlayers().GetPlayers())
 
 	playersToJoinRecords, err := s.GetPlayersByName(ctx, g.GetPlayers())
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("players to join", len(playersToJoinRecords.GetPlayers()))
 
 	// 3.a create a map of requesting playerIds to whether they should join
 	playersToJoinMap := map[int64]*pb.Player{}
@@ -364,34 +362,6 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 		return nil, err
 	}
 	return players, err
-
-}
-
-// SitGamePlayers allocates players to the game slots
-func (s *Server) SitGamePlayers(ctx context.Context, g *pb.Game) (*pb.Game, error) {
-
-	// 1. Get existing players IDs in the game
-	existingIds, err := s.GetGamePlayersByGameId(ctx, g)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// 2. Get Existing DbPlayer Records from the IDs
-	existingPlayerRecords, err := s.GetPlayers(ctx, existingIds)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(existingPlayerRecords.GetPlayers()) > 8 || len(existingPlayerRecords.GetPlayers()) < 2 {
-		return nil, ErrInvalidPlayerCount
-	}
-
-	for i, p := range existingPlayerRecords.GetPlayers() {
-		p.Slot = int64(i + 1)
-	}
-
-	return g, err
 
 }
 

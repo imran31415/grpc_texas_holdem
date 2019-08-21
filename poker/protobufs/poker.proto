@@ -13,7 +13,6 @@ service Poker {
     rpc GetGameByName(Game) returns (Game){}
     rpc SetGamePlayers(Game) returns (Players){}
     rpc GetPlayersByName(Players) returns(Players){}
-    rpc SitGamePlayers(Game) returns (Game){}
     // Allocate players to a table slot.
     rpc SetPlayerSlot(Player) returns (Player){}
     // allocate slots based on the players in a game
