@@ -2,21 +2,22 @@ syntax = "proto3";
 
 package poker;
 
+import "google/protobuf/empty.proto";
+
 service Poker {
     rpc CreatePlayer(Player) returns (Player){}
     rpc CreatePlayers(Players) returns (Players){}
+    rpc DeletePlayers(Players) returns (google.protobuf.Empty){}
     rpc GetPlayer(Player) returns (Player){}
     rpc GetPlayerByName(Player) returns (Player){}
     rpc CreateGame(Game) returns (Game){}
     rpc GetGame(Game) returns (Game){}
+    rpc DeleteGames(Games) returns (google.protobuf.Empty){}
     rpc GetGamePlayersByGameId(Game) returns (Players){}
     rpc GetGameByName(Game) returns (Game){}
     rpc SetGamePlayers(Game) returns (Players){}
     rpc GetPlayersByName(Players) returns(Players){}
-    // Allocate players to a table slot.
     rpc SetPlayerSlot(Player) returns (Player){}
-    // allocate slots based on the players in a game
-    // TODO: Define server method
     rpc AllocateGameSlots(Game) returns (Game){}
     rpc SetButtonPositions(Game) returns (Game){}
     rpc ValidatePreGame(Game) returns (Game){}
@@ -90,14 +91,18 @@ message Flop {
 
 message Game {
 
-    Players players = 1;
-    string name = 2;
+     Players players = 1;
+     string name = 2;
 
-    // button positions
-    int64 id = 3;
-    int64 dealer = 4;
-    int64 min = 5;
-    Round round = 6;
+     // button positions
+     int64 id = 3;
+     int64 dealer = 4;
+     int64 min = 5;
+     Round round = 6;
+}
+
+message Games {
+    repeated Game games = 1;
 }
 
 // any info here is only relevant within a particular hand

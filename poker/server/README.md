@@ -24,5 +24,4 @@ run server/client
 ```bash
 go run poker/run_server/main.go
 go run poker/run_client/main.go
-
 ```

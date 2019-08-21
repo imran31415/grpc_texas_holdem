@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/jinzhu/gorm"
 	"log"
 	"math/rand"
 	"net"
@@ -13,6 +12,8 @@ import (
 	"google.golang.org/grpc"
 	pb "imran/poker/protobufs"
 	"imran/poker/server/game_ring"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/jinzhu/gorm"
 )
 
 const (
@@ -272,6 +273,58 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	}
 
 	return game, nil
+}
+
+func (s *Server) DeleteGames(ctx context.Context, toDelete *pb.Games) (*empty.Empty, error) {
+
+	modelsToDelete := []*Games{}
+	ids := []int64{}
+	for _, game := range toDelete.GetGames() {
+		g := &Games{
+			Model: gorm.Model{
+				ID: uint(game.GetId()),
+			},
+		}
+		ids = append(ids, game.GetId())
+		modelsToDelete = append(modelsToDelete, g)
+	}
+
+	if err := s.gormDb.Where("id in (?)", ids).Find(modelsToDelete).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return &empty.Empty{}, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
+		return &empty.Empty{}, ErrGameDoesntExist
+	}
+
+	if err := s.gormDb.Where("id in (?)", ids).Delete(modelsToDelete).Error; err != nil {
+		return &empty.Empty{}, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *Server) DeletePlayers(ctx context.Context, toDelete *pb.Players) (*empty.Empty, error) {
+
+	modelsToDelete := []*Games{}
+	ids := []int64{}
+	for _, player := range toDelete.GetPlayers() {
+		p := &Games{
+			Model: gorm.Model{
+				ID: uint(player.GetId()),
+			},
+		}
+		ids = append(ids, player.GetId())
+		modelsToDelete = append(modelsToDelete, p)
+	}
+
+	if err := s.gormDb.Where("id in (?)", ids).Find(modelsToDelete).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return &empty.Empty{}, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
+		return &empty.Empty{}, ErrGameDoesntExist
+	}
+
+	if err := s.gormDb.Where("id in (?)", ids).Delete(modelsToDelete).Error; err != nil {
+		return &empty.Empty{}, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
