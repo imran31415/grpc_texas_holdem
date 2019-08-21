@@ -942,3 +942,53 @@ func TestServer_SetButtonPositions(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_SetButtonPositionsErrors(t *testing.T) {
+	tests := []struct {
+		Name            string
+		PlayersToCreate *pb.Players
+		GameToTest      *pb.Game
+		ExpError        string
+	}{
+		{
+			Name: "Test a game that doesn't exist",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: nil,
+			},
+			GameToTest: &pb.Game{
+				Name: getUniqueName(),
+				Players: &pb.Players{
+					Players: nil,
+				},
+			},
+
+			ExpError: server.ErrGameDoesntExist.Error(),
+		},
+		{
+			Name: "empty name should return error",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: nil,
+			},
+			GameToTest: &pb.Game{
+				Name: "",
+				Players: &pb.Players{
+					Players: nil,
+				},
+			},
+			ExpError: server.ErrEmptyGameName.Error(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			_, err := testClient.SetButtonPositions(ctx, tt.GameToTest)
+			require.Error(t, err)
+			require.Equal(t, rpcError(tt.ExpError), err.Error())
+
+		})
+	}
+}
