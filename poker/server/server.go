@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"sort"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"google.golang.org/grpc"
@@ -19,14 +20,17 @@ const (
 )
 
 var (
-	ErrPlayerNameExists   = fmt.Errorf("player with that name already exists")
-	ErrEmptyPlayerName    = fmt.Errorf("can not create player with empty name")
-	ErrInvalidPlayerCount = fmt.Errorf("can not create game with supplied count of players")
-	ErrGameNameExists     = fmt.Errorf("game with that name already exists")
-	ErrEmptyGameName      = fmt.Errorf("can not create game with empty name")
-	ErrTooManyPlayers     = fmt.Errorf("too many players to create game")
-	ErrInvalidSlotNumber  = fmt.Errorf("slot value invalid must be between 1-8")
-	ErrGameDoesntExist    = fmt.Errorf("the game requesting to be updated does not exist")
+	ErrPlayerNameExists        = fmt.Errorf("player with that name already exists")
+	ErrEmptyPlayerName         = fmt.Errorf("can not create player with empty name")
+	ErrInvalidPlayerCount      = fmt.Errorf("can not create game with supplied count of players")
+	ErrGameNameExists          = fmt.Errorf("game with that name already exists")
+	ErrEmptyGameName           = fmt.Errorf("can not create game with empty name")
+	ErrTooManyPlayers          = fmt.Errorf("too many players to create game")
+	ErrInvalidSlotNumber       = fmt.Errorf("slot value invalid must be between 1-8")
+	ErrGameDoesntExist         = fmt.Errorf("the game requesting to be updated does not exist")
+	ErrInvalidButtonAllocation = fmt.Errorf("buttons are not allocated correctly")
+	ErrNoBetSet                = fmt.Errorf("no bet set for game")
+	ErrIncorrectRingValueType  = fmt.Errorf("invalid ring value type")
 )
 
 type Server struct {
@@ -52,8 +56,6 @@ type Game struct {
 	gorm.Model
 	Name   string
 	Dealer int64
-	Big    int64
-	Small  int64
 	Min    int64
 	f1     string
 	f2     string
@@ -267,8 +269,6 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 		Id:      int64(g.ID),
 		Name:    g.Name,
 		Players: players,
-		Small:   g.Small,
-		Big:     g.Big,
 		Dealer:  g.Dealer,
 		Min:     g.Min,
 		// TODO hyrdate Deck and Flop
@@ -436,23 +436,7 @@ func (s *Server) AllocateGameSlots(ctx context.Context, g *pb.Game) (*pb.Game, e
 		}
 	}
 	dealerPos := rand.Intn(len(players)) + 1
-
-	var smallPos int
-	var bigPos int
-
-	if dealerPos+1 > len(players) {
-		smallPos = 1
-		bigPos = 2
-	} else {
-		smallPos = dealerPos + 1
-	}
-
-	if smallPos+1 > len(players) {
-		bigPos = 1
-	}
 	g.Dealer = int64(dealerPos)
-	g.Big = int64(bigPos)
-	g.Small = int64(smallPos)
 
 	out, err := s.GetGame(ctx, g)
 	if err != nil {
@@ -478,8 +462,6 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	toCreate := &Game{
 		Name:   g.GetName(),
 		Dealer: g.GetDealer(),
-		Big:    g.GetBig(),
-		Small:  g.GetSmall(),
 		Min:    g.GetMin(),
 		f1:     g.GetFlop().GetOne().String(),
 		f2:     g.GetFlop().GetFour().String(),
@@ -517,8 +499,6 @@ func (s *Server) SetButtonPositions(ctx context.Context, g *pb.Game) (*pb.Game, 
 	toUpdate := Game{
 		Min:    g.GetMin(),
 		Dealer: g.GetDealer(),
-		Big:    g.GetBig(),
-		Small:  g.GetSmall(),
 	}
 
 	if err := s.gormDb.Where("id = ?", game.GetId()).Find(game).Updates(toUpdate).Error; err != nil {
@@ -562,6 +542,73 @@ func (s *Server) SetGameBet(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	}
 	return out, nil
 
+}
+
+// ValidatePreGame returns an error if the game is invalid
+// Invalid reasons are
+//  1. Not enough, or too many players
+//  2. Slots are allocated to players incorrectly
+//  3. Button positions and bet is not set.
+func (s *Server) ValidatePreGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+	game, err := s.GetGame(ctx, g)
+	if err != nil {
+		return g, err
+	}
+	if game == nil {
+		return g, ErrGameDoesntExist
+	}
+	// Need to have 2-8 players to play
+	if len(g.GetPlayers().GetPlayers()) < 2 || len(g.GetPlayers().GetPlayers()) > 8 {
+		return g, ErrInvalidPlayerCount
+	}
+
+	// mapping of user id to slot
+	slotMap := map[int64]int64{}
+
+	// mapping of slot to userId
+	userMap := map[int64]int64{}
+
+	// get a slice of all the player slots
+	slotList := []int64{}
+
+	for _, player := range g.GetPlayers().GetPlayers() {
+		// Only seats 1-8 are valid
+		if player.GetSlot() < 1 || player.GetSlot() > 8 {
+			return g, ErrInvalidSlotNumber
+		}
+		// 2 players are allocated to the same slot
+		if _, ok := slotMap[player.GetId()]; ok {
+			return g, ErrInvalidSlotNumber
+		}
+		slotMap[player.GetId()] = player.GetSlot()
+		userMap[player.GetSlot()] = player.GetId()
+
+		slotList = append(slotList, player.GetSlot())
+	}
+
+	sort.Slice(slotList, func(i, j int) bool {
+		return slotList[i] < slotList[j]
+	})
+
+	for i, v := range slotList {
+		if !(i == 0) {
+			prev := slotList[i-1]
+			if !(prev < v) {
+				//The slots are not sequential, or there is a gap
+				return g, ErrInvalidSlotNumber
+			}
+		}
+	}
+
+	if g.GetDealer() == 0 {
+		return g, ErrInvalidButtonAllocation
+	}
+
+	if g.GetMin() < 1 {
+		return g, ErrNoBetSet
+	}
+
+	return g, nil
 }
 
 func Run() {

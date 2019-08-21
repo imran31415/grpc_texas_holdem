@@ -746,18 +746,6 @@ func TestServer_SetButtonPositions(t *testing.T) {
 
 			// assert all positions are set
 			assert.NotEqual(t, 0, g.GetDealer())
-			assert.NotEqual(t, 0, g.GetSmall())
-			assert.NotEqual(t, 0, g.GetBig())
-
-			// dealer position is always less then the small button position.
-			// If we are on position 8, then small should be 1
-			if g.GetDealer() < g.GetSmall() {
-				assert.Equal(t, 1, g.GetSmall())
-			}
-
-			if g.GetSmall() < g.GetBig() {
-				assert.Equal(t, 1, g.GetBig())
-			}
 
 		})
 	}

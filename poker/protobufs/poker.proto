@@ -21,6 +21,7 @@ service Poker {
     rpc AllocateGameSlots(Game) returns (Game){}
     rpc SetButtonPositions(Game) returns (Game){}
     rpc SetGameBet(Game) returns (Game){}
+    rpc ValidatePreGame(Game) returns (Game){}
 }
 
 message Card {
@@ -92,8 +93,6 @@ message Game {
 
     // button positions
     int64 id = 9;
-    int64 small = 10;
-    int64 big = 11;
     int64 dealer = 12;
     repeated Card deck = 13;
     Flop flop = 15;
