@@ -29,9 +29,13 @@ var (
 )
 
 // Useful for generating a unique id each time a test user is generated
-func getUniqueUser() string {
+func getUniqueName() string {
 	atomic.AddUint64(&ops, 1)
-	return fmt.Sprintf("testUser_%d", ops)
+	return fmt.Sprintf("testName_%d", ops)
+}
+
+func rpcError(s string) string {
+	return fmt.Sprintf("rpc error: code = Unknown desc = %s", s)
 }
 
 // Reuse the test database/connections across tests
@@ -74,7 +78,7 @@ func runTestServer(name string) {
 }
 
 func TestServer_CreatePlayer(t *testing.T) {
-	testPlayer := getUniqueUser()
+	testPlayer := getUniqueName()
 
 	tests := []struct {
 		Name     string
@@ -95,7 +99,7 @@ func TestServer_CreatePlayer(t *testing.T) {
 				Name:  "",
 				Chips: 0,
 			},
-			ExpError: "rpc error: code = Unknown desc = can not create player with empty name",
+			ExpError: rpcError(server.ErrEmptyPlayerName.Error()),
 		},
 		{
 			Name: "Create player that already exists",
@@ -103,7 +107,7 @@ func TestServer_CreatePlayer(t *testing.T) {
 				Name:  testPlayer,
 				Chips: 0,
 			},
-			ExpError: "rpc error: code = Unknown desc = player with that name already exists",
+			ExpError: rpcError(server.ErrPlayerNameExists.Error()),
 		},
 	}
 
@@ -131,34 +135,34 @@ func TestServer_CreatePlayers(t *testing.T) {
 
 	var playersSetA = []*pb.Player{
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 	}
 
 	var playersSetBOneEmpty = []*pb.Player{
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
@@ -166,11 +170,11 @@ func TestServer_CreatePlayers(t *testing.T) {
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 	}
@@ -193,7 +197,7 @@ func TestServer_CreatePlayers(t *testing.T) {
 			Players: &pb.Players{
 				Players: playersSetBOneEmpty,
 			},
-			ExpError: "rpc error: code = Unknown desc = can not create player with empty name",
+			ExpError: rpcError(server.ErrEmptyPlayerName.Error()),
 		},
 	}
 
@@ -214,6 +218,8 @@ func TestServer_CreatePlayers(t *testing.T) {
 
 func TestServer_CreateGame(t *testing.T) {
 
+	testGame := getUniqueName()
+
 	tests := []struct {
 		Name     string
 		Game     *pb.Game
@@ -222,7 +228,7 @@ func TestServer_CreateGame(t *testing.T) {
 		{
 			Name: "Create a game",
 			Game: &pb.Game{
-				Name: "testgame0",
+				Name: testGame,
 			},
 			ExpError: "",
 		},
@@ -231,14 +237,14 @@ func TestServer_CreateGame(t *testing.T) {
 			Game: &pb.Game{
 				Name: "",
 			},
-			ExpError: "rpc error: code = Unknown desc = can not create game with empty name",
+			ExpError: rpcError(server.ErrEmptyGameName.Error()),
 		},
 		{
 			Name: "Create game that already exists",
 			Game: &pb.Game{
-				Name: "testgame0",
+				Name: testGame,
 			},
-			ExpError: "rpc error: code = Unknown desc = game with that name already exists",
+			ExpError: rpcError(server.ErrGameNameExists.Error()),
 		},
 	}
 
@@ -262,6 +268,53 @@ func TestServer_CreateGame(t *testing.T) {
 
 }
 
+func TestServer_GetGame(t *testing.T) {
+
+	tests := []struct {
+		Name     string
+		Game     *pb.Game
+		ExpError string
+	}{
+		{
+			Name: "Create a game then get it ",
+			Game: &pb.Game{
+				Name: getUniqueName(),
+			},
+			ExpError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			g, err := testClient.CreateGame(ctx, tt.Game)
+
+			if tt.ExpError != "" {
+				require.Equal(t, tt.ExpError, err.Error())
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.Game.GetName(), g.GetName())
+
+			// get the game and ensure its the same
+			g, err = testClient.GetGame(ctx, g)
+			require.NoError(t, err)
+			require.Equal(t, tt.Game.GetName(), g.GetName())
+
+			// get a non existent game
+			g.Id = 100000
+			g, err = testClient.GetGame(ctx, g)
+			require.Error(t, err)
+			require.Equal(t, rpcError(server.ErrGameDoesntExist.Error()), err.Error())
+
+		})
+	}
+
+}
+
 func TestServer_SetGamePlayers(t *testing.T) {
 
 	tests := []struct {
@@ -276,7 +329,8 @@ func TestServer_SetGamePlayers(t *testing.T) {
 	}{
 		{
 			Name: "Create game players",
-			// These are all the players that will be referenced in the test
+			// These are all the players that will be referenced  and reused
+			// in the test so  don't generate unique ones
 			PlayersToCreate: &pb.Players{
 				Players: []*pb.Player{
 					{
@@ -430,23 +484,23 @@ func TestServer_SetGamePlayers(t *testing.T) {
 func TestServer_SetPlayerSlot(t *testing.T) {
 	var playersSetA = []*pb.Player{
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 	}
@@ -463,7 +517,7 @@ func TestServer_SetPlayerSlot(t *testing.T) {
 				Players: playersSetA,
 			},
 			GameToCreate: &pb.Game{
-				Name: "testgame2",
+				Name: getUniqueName(),
 				Players: &pb.Players{
 					Players: playersSetA,
 				},
@@ -523,23 +577,23 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 
 	var playersSetA = []*pb.Player{
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 	}
@@ -557,7 +611,7 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 				Players: playersSetA,
 			},
 			GameToCreate: &pb.Game{
-				Name: "testgame3",
+				Name: getUniqueName(),
 				Players: &pb.Players{
 					Players: playersSetA,
 				},
@@ -616,58 +670,58 @@ func TestServer_SetButtonPositions(t *testing.T) {
 
 	var playersSetA = []*pb.Player{
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 	}
 	// test maximum number of players
 	var playersSetB = []*pb.Player{
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 	}
@@ -676,15 +730,15 @@ func TestServer_SetButtonPositions(t *testing.T) {
 	// 3 is the minimum we can test for this strategy
 	var playersSetC = []*pb.Player{
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 		{
-			Name:  getUniqueUser(),
+			Name:  getUniqueName(),
 			Chips: 0,
 		},
 	}
@@ -702,7 +756,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 				Players: playersSetA,
 			},
 			GameToCreate: &pb.Game{
-				Name: "testgame4",
+				Name: getUniqueName(),
 				Players: &pb.Players{
 					Players: playersSetA,
 				},
@@ -717,7 +771,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 				Players: playersSetB,
 			},
 			GameToCreate: &pb.Game{
-				Name: "testgame5",
+				Name: getUniqueName(),
 				Players: &pb.Players{
 					Players: playersSetB,
 				},
@@ -733,7 +787,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 				Players: playersSetC,
 			},
 			GameToCreate: &pb.Game{
-				Name: "testgame6",
+				Name: getUniqueName(),
 				Players: &pb.Players{
 					Players: playersSetC,
 				},

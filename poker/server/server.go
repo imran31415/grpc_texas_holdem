@@ -28,7 +28,7 @@ var (
 	ErrEmptyGameName           = fmt.Errorf("can not create game with empty name")
 	ErrTooManyPlayers          = fmt.Errorf("too many players to create game")
 	ErrInvalidSlotNumber       = fmt.Errorf("slot value invalid must be between 1-8")
-	ErrGameDoesntExist         = fmt.Errorf("the game requesting to be updated does not exist")
+	ErrGameDoesntExist         = fmt.Errorf("no game found")
 	ErrInvalidButtonAllocation = fmt.Errorf("buttons are not allocated correctly")
 	ErrNoBetSet                = fmt.Errorf("no bet set for game")
 )

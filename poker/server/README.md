@@ -9,7 +9,9 @@
 ```go run poker/server/server_test.go```
 
 ####  Get coverage:
-```aidl
+
+From within `server/` package:
+```bash
 go test -coverprofile=coverage.out 
 go tool cover -func=coverage.out
 go tool cover -html=coverage.out
@@ -18,7 +20,7 @@ go tool cover -html=coverage.out
 #### Run Commands
 
 run server/client
-```aidl
+```bash
 go run poker/run_server/main.go
 go run poker/run_client/main.go
 
