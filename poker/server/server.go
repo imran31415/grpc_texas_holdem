@@ -396,6 +396,7 @@ func (s *Server) AllocateGameSlots(ctx context.Context, g *pb.Game) (*pb.Game, e
 		if i > 8 {
 			return nil, ErrInvalidPlayerCount
 		}
+		// start at 1 because 0 is the nil value of a slot so 0 signifies unassigned
 		slot := i + 1
 		p.Slot = int64(slot)
 		_, err := s.SetPlayerSlot(ctx, p)
@@ -496,7 +497,7 @@ func (s *Server) NextDealer(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// Set new dealer to the current small blind
 	newDealer, err := r.MarshalValue()
 
 	toUpdate := Games{

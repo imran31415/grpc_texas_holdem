@@ -527,19 +527,19 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 			Chips: 0,
 		},
 		{
-			Name:   getUniqueUser(),
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:   getUniqueUser(),
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:   getUniqueUser(),
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:   getUniqueUser(),
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 	}
@@ -554,12 +554,12 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 			Name: "Create game players",
 			// These are all the players that will be referenced in the test
 			PlayersToCreate: &pb.Players{
-				Players:playersSetA,
+				Players: playersSetA,
 			},
 			GameToCreate: &pb.Game{
 				Name: "testgame3",
 				Players: &pb.Players{
-					Players:playersSetA,
+					Players: playersSetA,
 				},
 			},
 
@@ -608,77 +608,83 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 
 // TestServer_SetButtonPositions allocates players to slots
 // and also tests the Game ring logic.
+
+// In the test we generate a game, allocate players and set positions.
+// Next we shift the dealer and validate the game ring logic appropriately
+// manages determining the correct small/big blind positions as well as getting info from the DB
 func TestServer_SetButtonPositions(t *testing.T) {
 
 	var playersSetA = []*pb.Player{
 		{
-			Name:  "bob3333",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "jim3333",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "fred3333",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "cam3333",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "tim3333",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 	}
-
+	// test maximum number of players
 	var playersSetB = []*pb.Player{
 		{
-			Name:  "bob333341",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "jim333341",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "fred333341",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "cam333341",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "tim333341",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "sam333341",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "sarah333341",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "joe333341",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 	}
 
+	// since heads up has different rules,
+	// 3 is the minimum we can test for this strategy
 	var playersSetC = []*pb.Player{
 		{
-			Name:  "bob3333412",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "jim3333411",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 		{
-			Name:  "fred3333411",
+			Name:  getUniqueUser(),
 			Chips: 0,
 		},
 	}
@@ -690,7 +696,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 		ExpError        string
 	}{
 		{
-			Name: "Create game players",
+			Name: "Test a game with 5 players",
 			// These are all the players that will be referenced in the test
 			PlayersToCreate: &pb.Players{
 				Players: playersSetA,
@@ -705,7 +711,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			ExpError: "",
 		},
 		{
-			Name: "Create game players",
+			Name: "Test a game with the max number of players",
 			// These are all the players that will be referenced in the test
 			PlayersToCreate: &pb.Players{
 				Players: playersSetB,
@@ -721,7 +727,7 @@ func TestServer_SetButtonPositions(t *testing.T) {
 		},
 
 		{
-			Name: "Create game players",
+			Name: "Test a game with 3 players (min possible for this strat)",
 			// These are all the players that will be referenced in the test
 			PlayersToCreate: &pb.Players{
 				Players: playersSetC,
@@ -834,14 +840,30 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			// Player next from the dealer should equal small blind
 			assert.Equal(t, b.GetSlot(), player.GetSlot())
 
-			nextDealerGame, err := testClient.NextDealer(ctx, readyGame)
+			// Update the DB that there is a new dealer
+			newDealerGame, err := testClient.NextDealer(ctx, readyGame)
 			// Get the game ring for the game now that dealer has shifted
-			r2, err := game_ring.NewRing(nextDealerGame)
+			r2, err := game_ring.NewRing(newDealerGame)
 			require.NoError(t, err)
 			newDealer, err := r2.CurrentDealer()
 			//validate the next dealer matches between the one set in the game and in the game ring
 			assert.Equal(t, r2.GetDealer(), newDealer.GetSlot())
 			assert.Equal(t, newDealer.GetSlot(), s.GetSlot())
+
+			// validate the new big and small blinds are different after dealer has switched.
+			// Get Small blind
+			err = r2.CurrentSmallBlind()
+			require.NoError(t, err)
+			s2, err := r2.MarshalValue()
+			require.NoError(t, err)
+			assert.NotEqual(t, s2.GetId(), s.GetId())
+
+			// Get Big blind
+			err = r2.CurrentBigBlind()
+			require.NoError(t, err)
+			b2, err := r2.MarshalValue()
+			require.NoError(t, err)
+			assert.NotEqual(t, b2.GetId(), b.GetId())
 
 		})
 	}
