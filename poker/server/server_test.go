@@ -521,6 +521,29 @@ func TestServer_SetPlayerSlot(t *testing.T) {
 
 func TestServer_AllocateGameSlots(t *testing.T) {
 
+	var playersSetA = []*pb.Player{
+		{
+			Name:  getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:   getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:   getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:   getUniqueUser(),
+			Chips: 0,
+		},
+		{
+			Name:   getUniqueUser(),
+			Chips: 0,
+		},
+	}
+
 	tests := []struct {
 		Name            string
 		PlayersToCreate *pb.Players
@@ -531,55 +554,12 @@ func TestServer_AllocateGameSlots(t *testing.T) {
 			Name: "Create game players",
 			// These are all the players that will be referenced in the test
 			PlayersToCreate: &pb.Players{
-				Players: []*pb.Player{
-					{
-						Name:  "bob333",
-						Chips: 0,
-					},
-					{
-						Name:  "jim333",
-						Chips: 0,
-					},
-					{
-						Name:  "fred333",
-						Chips: 0,
-					},
-					{
-						Name:  "cam333",
-						Chips: 0,
-					},
-					{
-						Name:  "tim333",
-						Chips: 0,
-					},
-				},
+				Players:playersSetA,
 			},
 			GameToCreate: &pb.Game{
 				Name: "testgame3",
 				Players: &pb.Players{
-					Players: []*pb.Player{
-						// all are new players
-						{
-							Name:  "bob333",
-							Chips: 0,
-						},
-						{
-							Name:  "jim333",
-							Chips: 0,
-						},
-						{
-							Name:  "fred333",
-							Chips: 0,
-						},
-						{
-							Name:  "cam333",
-							Chips: 0,
-						},
-						{
-							Name:  "tim333",
-							Chips: 0,
-						},
-					},
+					Players:playersSetA,
 				},
 			},
 
