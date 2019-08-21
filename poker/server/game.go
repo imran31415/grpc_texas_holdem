@@ -2,10 +2,12 @@ package server
 
 import (
 	"container/ring"
+	"fmt"
 	pb "imran/poker/protobufs"
 	"sort"
 )
 
+var ErrNilRingItems = fmt.Errorf("ring should not have nil items")
 // use a game ring to manage turns
 type GameRing struct {
 	*ring.Ring
@@ -15,7 +17,7 @@ type GameRing struct {
 // NewGameRing generates a ring data type using the players in a game.
 // This makes it easy to traverse through players and determine
 // who is dealer, big, small, or who is next in turn
-func NewGameRing(g *pb.Game) *GameRing {
+func NewGameRing(g *pb.Game) (*GameRing, error) {
 	// construct game ring:
 
 	players := g.GetPlayers().GetPlayers()
@@ -33,7 +35,18 @@ func NewGameRing(g *pb.Game) *GameRing {
 		gr.next()
 	}
 
-	return gr
+	hasNil  := false
+	// validate all slots are taken
+	r.Do(func(p interface{}) {
+		if p == nil {
+			hasNil = true
+		}
+	})
+	if hasNil {
+		return nil, ErrNilRingItems
+	}
+
+	return gr, nil
 }
 
 func (g *GameRing) CurrentDealer() (*pb.Player, error) {

@@ -750,7 +750,8 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			// get the game
 			readyGame, err := testClient.GetGame(ctx, allocatedGame)
 			require.NoError(t, err)
-			r := server.NewGameRing(readyGame)
+			r, err := server.NewGameRing(readyGame)
+			require.NoError(t, err)
 
 			// Get the dealer according to game ring
 			d, err := r.CurrentDealer()
@@ -795,7 +796,8 @@ func TestServer_SetButtonPositions(t *testing.T) {
 
 			nextDealerGame, err := testClient.NextDealer(ctx, readyGame)
 			// Get the game ring for the game now that dealer has shifted
-			r2 := server.NewGameRing(nextDealerGame)
+			r2, err := server.NewGameRing(nextDealerGame)
+			require.NoError(t, err)
 			newDealer, err := r2.CurrentDealer()
 
 			//validate the next dealer matches between the one set in the game and in the game ring

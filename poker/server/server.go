@@ -515,7 +515,10 @@ func (s *Server) NextDealer(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, ErrGameDoesntExist
 	}
 
-	r := NewGameRing(g)
+	r, err := NewGameRing(g)
+	if err != nil {
+		return nil, err
+	}
 
 	err = r.CurrentSmallBlind()
 	if err != nil {
