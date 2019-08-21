@@ -8,12 +8,12 @@ import (
 	"net"
 	"sort"
 
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"google.golang.org/grpc"
 	pb "imran/poker/protobufs"
 	"imran/poker/server/game_ring"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/jinzhu/gorm"
 )
 
 const (
@@ -32,6 +32,7 @@ var (
 	ErrGameDoesntExist         = fmt.Errorf("no game found")
 	ErrInvalidButtonAllocation = fmt.Errorf("buttons are not allocated correctly")
 	ErrNoBetSet                = fmt.Errorf("no bet set for game")
+	ErrPlayerDoesntExist       = fmt.Errorf("player doesn't exist")
 )
 
 type Server struct {
@@ -53,7 +54,7 @@ type GamePlayers struct {
 	Game   int64
 }
 
-type Games struct {
+type Game struct {
 	gorm.Model
 	Name   string
 	Dealer int64
@@ -85,7 +86,7 @@ func (s *Server) setupDatabase(name string) error {
 	if err := db.AutoMigrate(&GamePlayers{}).Error; err != nil {
 		return err
 	}
-	if err := db.AutoMigrate(&Games{}).Error; err != nil {
+	if err := db.AutoMigrate(&Game{}).Error; err != nil {
 		return err
 	}
 
@@ -238,7 +239,7 @@ func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb
 }
 
 func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
-	g := &Games{
+	g := &Game{
 		Model: gorm.Model{
 			ID: uint(in.GetId()),
 		},
@@ -268,8 +269,6 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 		Players: players,
 		Dealer:  g.Dealer,
 		Min:     g.Min,
-		// TODO hyrdate Deck and Flop
-
 	}
 
 	return game, nil
@@ -277,58 +276,55 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 
 func (s *Server) DeleteGames(ctx context.Context, toDelete *pb.Games) (*empty.Empty, error) {
 
-	modelsToDelete := []*Games{}
-	ids := []int64{}
+	var ids = []int64{}
 	for _, game := range toDelete.GetGames() {
-		g := &Games{
-			Model: gorm.Model{
-				ID: uint(game.GetId()),
-			},
-		}
 		ids = append(ids, game.GetId())
-		modelsToDelete = append(modelsToDelete, g)
 	}
 
-	if err := s.gormDb.Where("id in (?)", ids).Find(modelsToDelete).Error; err != nil && err != gorm.ErrRecordNotFound {
+	fmt.Println("Ids count is ", ids)
+
+	if err := s.gormDb.Where("id in (?)", ids).Find(&Game{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return &empty.Empty{}, err
 	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return &empty.Empty{}, ErrGameDoesntExist
 	}
 
-	if err := s.gormDb.Where("id in (?)", ids).Delete(modelsToDelete).Error; err != nil {
+	if err := s.gormDb.Where("id in (?)", ids).Delete(&Game{}).Error; err != nil {
 		return &empty.Empty{}, err
 	}
+
+	fmt.Println("ROWS", s.gormDb.RowsAffected)
+
+	fmt.Println("Deleted game count: ", len(ids))
 	return &empty.Empty{}, nil
 }
 
 func (s *Server) DeletePlayers(ctx context.Context, toDelete *pb.Players) (*empty.Empty, error) {
 
-	modelsToDelete := []*Games{}
-	ids := []int64{}
+	var ids = []int64{}
 	for _, player := range toDelete.GetPlayers() {
-		p := &Games{
-			Model: gorm.Model{
-				ID: uint(player.GetId()),
-			},
-		}
 		ids = append(ids, player.GetId())
-		modelsToDelete = append(modelsToDelete, p)
 	}
 
-	if err := s.gormDb.Where("id in (?)", ids).Find(modelsToDelete).Error; err != nil && err != gorm.ErrRecordNotFound {
+	fmt.Println("Delete players Ids count is ", ids)
+	if err := s.gormDb.Where("id in (?)", ids).Find(&Player{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return &empty.Empty{}, err
 	} else if err != nil && err == gorm.ErrRecordNotFound {
-		return &empty.Empty{}, ErrGameDoesntExist
+		return &empty.Empty{}, ErrPlayerDoesntExist
 	}
 
-	if err := s.gormDb.Where("id in (?)", ids).Delete(modelsToDelete).Error; err != nil {
+	if err := s.gormDb.Where("id in (?)", ids).Delete(&Player{}).Error; err != nil {
 		return &empty.Empty{}, err
 	}
+
+	fmt.Println("ROWS", s.gormDb.RowsAffected)
+
+	fmt.Println("Deleted player count: ", len(ids))
 	return &empty.Empty{}, nil
 }
 
 func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
-	g := Games{
+	g := Game{
 		Name: in.GetName(),
 	}
 
@@ -366,7 +362,7 @@ func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.P
 
 // SetGamePlayers Sets the game players.
 // This method is flexible so if there are existing players in the game
-// it will only add the difference (If the total number of players is less than 8)
+// it will only add the difference (If the total number of players is less than 9 and greater than 1)
 func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, error) {
 
 	// 1. Get existing players IDs in the game
@@ -479,7 +475,7 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, ErrGameNameExists
 	}
 
-	toCreate := &Games{
+	toCreate := &Game{
 		Name:   g.GetName(),
 		Dealer: g.GetDealer(),
 		Min:    g.GetMin(),
@@ -509,7 +505,7 @@ func (s *Server) SetButtonPositions(ctx context.Context, g *pb.Game) (*pb.Game, 
 		return nil, ErrGameDoesntExist
 	}
 
-	toUpdate := Games{
+	toUpdate := Game{
 		Min: g.GetMin(),
 		// Randomly allocate a dealer
 		Dealer: int64(rand.Intn(len(game.GetPlayers().GetPlayers()))) + 1,
@@ -553,7 +549,7 @@ func (s *Server) NextDealer(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	// Set new dealer to the current small blind
 	newDealer, err := r.MarshalValue()
 
-	toUpdate := Games{
+	toUpdate := Game{
 		Min: g.GetMin(),
 		// Randomly allocate a dealer
 		Dealer: newDealer.GetSlot(),

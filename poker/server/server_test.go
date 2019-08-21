@@ -318,6 +318,83 @@ func TestServer_GetGame(t *testing.T) {
 
 }
 
+func TestServer_DeleteGames(t *testing.T) {
+	g1 := getUniqueName()
+	g2 := getUniqueName()
+	g3 := getUniqueName()
+	tests := []struct {
+		Name     string
+		Games    *pb.Games
+		ExpError string
+	}{
+		{
+			Name: "Create a game then get it ",
+			Games: &pb.Games{
+				Games: []*pb.Game{
+					{Name: g1},
+					{Name: g2},
+					{Name: g3},
+				},
+			},
+			ExpError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			gameIds := []int64{}
+			for _, tg := range tt.Games.GetGames() {
+				g, err := testClient.CreateGame(ctx, tg)
+				require.NoError(t, err)
+				require.Equal(t, tg.GetName(), g.GetName())
+				// get the game and ensure its the same
+				g, err = testClient.GetGame(ctx, g)
+				require.NoError(t, err)
+				require.Equal(t, tg.GetName(), g.GetName())
+				gameIds = append(gameIds, g.GetId())
+			}
+
+			// verify we can get all the games we created from DB
+			createdGames := &pb.Games{}
+			for _, id := range gameIds {
+				g, err := testClient.GetGame(ctx, &pb.Game{Id: id})
+				require.NoError(t, err)
+				require.Equal(t, id, g.GetId())
+				createdGames.Games = append(createdGames.GetGames(), g)
+			}
+
+			// Delete the first game (out of 3 games)
+			_, err := testClient.DeleteGames(ctx,
+				&pb.Games{Games: []*pb.Game{
+					createdGames.GetGames()[0],
+				},
+				})
+			require.NoError(t, err)
+
+			// it is deleted, so we should get an error trying to get it
+			_, err = testClient.GetGame(ctx, &pb.Game{Id: gameIds[0]})
+			fmt.Println(err)
+			require.Error(t, err)
+
+			//delete remaining games
+			_, err = testClient.DeleteGames(ctx, &pb.Games{Games: createdGames.GetGames()})
+			require.NoError(t, err)
+			// verify we can get none the games we created from DB
+			fmt.Println("End of test")
+			for _, id := range createdGames.GetGames() {
+				g, err := testClient.GetGame(ctx, &pb.Game{Id: id.GetId()})
+				fmt.Println("Got Game", g)
+				require.Error(t, err)
+			}
+
+		})
+	}
+
+}
+
 func TestServer_SetGamePlayers(t *testing.T) {
 
 	tests := []struct {
@@ -808,7 +885,6 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			var game *pb.Game
 			// First create some players
 			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
-			fmt.Println("Created players, ", len(createdPlayers.GetPlayers()))
 			require.NoError(t, err)
 			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
 
@@ -827,7 +903,6 @@ func TestServer_SetButtonPositions(t *testing.T) {
 			// validate the number of initial players is correct
 			// Check the player-game join table against what is expected
 			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
-			fmt.Println("Players count", len(players.GetPlayers()))
 			require.NoError(t, err)
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
 			// check the serialized game has the correct number of players
@@ -993,8 +1068,6 @@ func TestServer_SetButtonPositionsErrors(t *testing.T) {
 	}
 }
 
-
-
 // ValidatePreGame returns an error if the game is invalid
 // Invalid reasons are
 //  1. Not enough, or too many players
@@ -1067,12 +1140,11 @@ func TestServer_ValidatePreGame(t *testing.T) {
 					Players: playersSetA,
 				},
 			},
-			AllocateSlots : true,
+			AllocateSlots:  true,
 			AllocateMinBet: true,
 			AllocateDealer: true,
-			ExpError: "",
+			ExpError:       "",
 		},
-
 
 		{
 			Name: "Test invalid, slots not allocated",
@@ -1086,10 +1158,10 @@ func TestServer_ValidatePreGame(t *testing.T) {
 					Players: playersSetB,
 				},
 			},
-			AllocateSlots : false,
+			AllocateSlots:  false,
 			AllocateMinBet: true,
 			AllocateDealer: true,
-			ExpError: server.ErrInvalidSlotNumber.Error(),
+			ExpError:       server.ErrInvalidSlotNumber.Error(),
 		},
 	}
 
@@ -1100,7 +1172,6 @@ func TestServer_ValidatePreGame(t *testing.T) {
 			var game *pb.Game
 			// First create some players
 			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
-			fmt.Println("Created players, ", len(createdPlayers.GetPlayers()))
 			require.NoError(t, err)
 			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
 
@@ -1127,7 +1198,7 @@ func TestServer_ValidatePreGame(t *testing.T) {
 				game.Min = int64(100)
 			}
 
-			if tt. AllocateDealer {
+			if tt.AllocateDealer {
 				// Now that players are seated, set dealer position and min bet
 				game, err = testClient.SetButtonPositions(ctx, game)
 				require.NoError(t, err)
@@ -1135,8 +1206,197 @@ func TestServer_ValidatePreGame(t *testing.T) {
 
 			game, err = testClient.ValidatePreGame(ctx, game)
 			if err != nil {
-				require.Equal(t, rpcError(tt.ExpError),  err.Error())
+				require.Equal(t, rpcError(tt.ExpError), err.Error())
 			}
+		})
+	}
+}
+
+func TestServer_DeletePlayers(t *testing.T) {
+
+	tests := []struct {
+		Name     string
+		Players  *pb.Players
+		ExpError string
+	}{
+		{
+			Name: "Create a player",
+			Players: &pb.Players{
+				Players: []*pb.Player{
+					{Name: getUniqueName()},
+					{Name: getUniqueName()},
+					{Name: getUniqueName()},
+					{Name: getUniqueName()},
+				},
+			},
+			ExpError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			createdPlayers := []*pb.Player{}
+			for _, toCreate := range tt.Players.GetPlayers() {
+				p, err := testClient.CreatePlayer(ctx, toCreate)
+				require.NoError(t, err)
+				createdPlayers = append(createdPlayers, p)
+			}
+
+			// verify we can get all the pones we created
+			players, err := testClient.GetPlayersByName(ctx, &pb.Players{Players: createdPlayers})
+			require.NoError(t, err)
+			require.Equal(t, len(players.GetPlayers()), len(tt.Players.GetPlayers()))
+			// Delete 1 player
+			_, err = testClient.DeletePlayers(ctx, &pb.Players{Players: []*pb.Player{
+				createdPlayers[0],
+			}})
+			require.NoError(t, err)
+
+			// returned players should be missing one
+			players, err = testClient.GetPlayersByName(ctx, &pb.Players{Players: createdPlayers})
+			require.NoError(t, err)
+			require.Equal(t, len(players.GetPlayers())+1, len(tt.Players.GetPlayers()))
+
+			// Delete the rest
+			_, err = testClient.DeletePlayers(ctx, &pb.Players{Players: createdPlayers})
+			require.NoError(t, err)
+
+			// Mo No players should get returned
+			players, err = testClient.GetPlayersByName(ctx, &pb.Players{Players: createdPlayers})
+			require.NoError(t, err)
+			require.Equal(t, 0, len(players.GetPlayers()))
+		})
+	}
+
+}
+
+func TestServer_TestHeadsUp(t *testing.T) {
+
+	var playersSetA = []*pb.Player{
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+	}
+
+	tests := []struct {
+		Name            string
+		PlayersToCreate *pb.Players
+		GameToCreate    *pb.Game
+		ExpError        string
+	}{
+		{
+			Name: "Test a game with 2 players",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: playersSetA,
+			},
+			GameToCreate: &pb.Game{
+				Name: getUniqueName(),
+				Players: &pb.Players{
+					Players: playersSetA,
+				},
+			},
+
+			ExpError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			var game *pb.Game
+			// First create some players
+			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
+			require.NoError(t, err)
+			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
+
+			// Create the initial game
+			game, err = testClient.CreateGame(ctx, tt.GameToCreate)
+			require.NoError(t, err)
+			game.Players = tt.GameToCreate.GetPlayers()
+
+			// Set the initial game players
+			_, err = testClient.SetGamePlayers(ctx, game)
+			require.NoError(t, err)
+
+			// Get the game from DB now that players are set
+			game, err = testClient.GetGame(ctx, game)
+
+			// validate the number of initial players is correct
+			// Check the player-game join table against what is expected
+			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+			// check the serialized game has the correct number of players
+			require.Equal(t, len(game.GetPlayers().GetPlayers()), len(tt.GameToCreate.GetPlayers().GetPlayers()))
+
+			// allocate players to the game slots
+			game, err = testClient.AllocateGameSlots(ctx, game)
+			require.NoError(t, err)
+			// Validate all slots were allocated
+			for _, p := range game.GetPlayers().GetPlayers() {
+				slot := p.GetSlot()
+				assert.Greater(t, slot, int64(0))
+				assert.Less(t, slot, int64(9))
+			}
+
+			// TODO: create method to set this
+			game.Min = int64(100)
+
+			// Now that players are seated, set dealer position
+			game, err = testClient.SetButtonPositions(ctx, game)
+			require.NoError(t, err)
+			// assert min is set.
+			assert.Equal(t, int64(100), game.GetMin())
+
+			// assert dealer is set
+			assert.Greater(t, int(game.GetDealer()), 0)
+
+			//--------------------------
+			// SECTION 2: Test game ring logic
+			// ------------------------
+
+			// Generate a gameRing and get the allocations
+			gameRing, err := game_ring.NewRing(game)
+			require.NoError(t, err)
+
+			// Get the dealer according to game ring
+			d, err := gameRing.CurrentDealer()
+			require.NoError(t, err)
+
+			// Get Small blind
+			err = gameRing.CurrentSmallBlind()
+			require.NoError(t, err)
+			s, err := gameRing.MarshalValue()
+			require.NoError(t, err)
+
+			// Get Big blind
+			err = gameRing.CurrentBigBlind()
+			require.NoError(t, err)
+			b, err := gameRing.MarshalValue()
+			require.NoError(t, err)
+
+			//The dealer's slot according to the gamering should match
+			// the same slot as saved in the Game DB
+			require.Equal(t, d.GetSlot(), game.GetDealer())
+
+			// in heads up the dealer should be small blind
+			require.Equal(t, game.GetDealer(), s.GetSlot())
+
+			// small blind should be the "other person"
+
+			fmt.Println(d.GetSlot(), s.GetSlot(), b.GetSlot())
+			require.NotEqual(t, game.GetDealer(), b.GetSlot())
+
 		})
 	}
 }

@@ -18,17 +18,22 @@ type GameRing struct {
 	*pb.Game
 }
 
-// NewRing generates a ring data type using the players in a game.
-// This makes it easy to traverse through players and determine
-// who is dealer, big, small, or who is next in turn
-// The database representation of the right consists of the players and their allocated
-// game slots, as well as the position of the dealer.
-// The player slots are stored in the players table and the dealer position is stored in the game table.
-// The Game proto is a serialized version of the game + players, which is the necessary info we need
-// to generate a Ring.
+/*
+NewRing generates a ring data type using the players in a game.
 
-// doing a server.GetGame() on a valid game should give the necessary info to generate a ring and start a game.
-// the server.ValidateGame() call can help determine if a game has the required info to generate a ring.
+	This makes it easy to traverse through players and determine
+	who is dealer, big, small, or who is next in turn
+
+	The database representation of the right consists of the players and their allocated
+	game slots, as well as the position of the dealer.
+
+	The player slots are stored in the players table and the dealer position is stored in the game table.
+	The Game proto is a serialized version of the game + players, which is the necessary info we need
+	to generate a Ring.
+
+	Doing a server.GetGame() on a valid game should give the necessary info to generate a ring and start a game.
+	The server.ValidateGame() call can help determine if a game has the required info to generate a ring.
+*/
 func NewRing(g *pb.Game) (*GameRing, error) {
 	// construct game ring:
 
@@ -79,13 +84,14 @@ func (g *GameRing) CurrentDealer() (*pb.Player, error) {
 }
 
 func (g *GameRing) CurrentBigBlind() error {
-	// heads up means the would be big blind and small blind are
-	// switched in a 2 ring arrangement
+	// heads up means the non dealer posts the big blind
+	// Go to the dealer then go next() to go to the other guy
 	if g.headsUp() {
-		err := g.CurrentSmallBlind()
+		_, err := g.CurrentDealer()
 		if err != nil {
 			return err
 		}
+		g.next()
 		return nil
 	}
 
@@ -99,7 +105,8 @@ func (g *GameRing) CurrentBigBlind() error {
 
 func (g *GameRing) CurrentSmallBlind() error {
 	// heads up means the would be big blind and small blind are
-	// switched in a 2 ring arrangement
+	// switched in a 2 ring arrangement, As appose
+	// to what they would be if we applied the rules of 3 or more people
 	if g.headsUp() {
 		_, err := g.CurrentDealer()
 		if err != nil {
@@ -129,7 +136,7 @@ func (g *GameRing) headsUp() bool {
 }
 
 func (g *GameRing) MarshalValue() (*pb.Player, error) {
-	// TODO: investigate if this perhaps has terrible performance (doesn't seem to)
+	// a negative of this ring method is we have to type convert every time we need dealer
 	player, ok := g.Value.(*pb.Player)
 
 	if !ok {
