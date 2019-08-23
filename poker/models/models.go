@@ -31,6 +31,21 @@ type Game struct {
 	Min    int64
 }
 
+// db representation of a round of 1 sequence of dealing out cards
+type Round struct {
+	gorm.Model
+	Game int64
+	Deck string
+}
+
+// This is the database representation of all cards.
+// Each card is associated to a round, deck, and possible a player
+type Cards struct {
+	gorm.Model
+	RoundPla int64 // Id of the game
+
+}
+
 // ProtoUnMarshal gets db representation of the protobuf
 func (p *Player) ProtoUnMarshal(player *pb.Player) {
 	p.Model.ID = uint(player.GetId())

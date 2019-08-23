@@ -3,15 +3,18 @@ package deck
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
+
+// shamelessly stolen from https://gist.github.com/montanaflynn/4cc2779d2e353d7524a7bdce57869a75
+// 		-With some slight modifications to make it work with the evaluation logic
 
 // Seed our randomness with the current time
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// shamelessly stolen from https://gist.github.com/montanaflynn/4cc2779d2e353d7524a7bdce57869a75
 // Card holds the card suits and types in the deck
 type Card struct {
 	Type string
@@ -22,7 +25,35 @@ func (c *Card) String() string {
 	return fmt.Sprintf("%s%s", c.Type, c.Suit)
 }
 
+func (c *Card) Marshal(string) {
+	c = &Card{}
+}
+
 type Deck []Card
+
+func (d Deck) String() string {
+	b := strings.Builder{}
+	for _, i := range d {
+		b.WriteString(i.String())
+	}
+	return b.String()
+}
+
+func (d Deck) Marshal(deck string) Deck {
+	out := []Card{}
+	for i, _ := range deck {
+		index := i + 1
+		if index%2 == 0 {
+			out = append(out, Card{
+				Type: string(deck[i-1]),
+				Suit: string(deck[i]),
+			})
+
+		}
+	}
+	return out
+
+}
 
 func New() (deck Deck) {
 	types := []string{"2", "3", "4", "5", "6", "7",
@@ -60,7 +91,7 @@ func Shuffle(d Deck) Deck {
 }
 
 // Deal a specified amount of cards
-func DealCard(d Deck, n int) (Card, Deck) {
+func DealCard(d Deck) (Card, Deck) {
 	c, d := d[len(d)-1], d[:len(d)-1]
 	return c, d
 

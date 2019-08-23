@@ -2,6 +2,8 @@ package deck
 
 /*
    shamelessly stolen from: https://github.com/worldveil/gopoker
+	 - slight modification to move lookup tables from csv into a go map
+	directly to avoid loading it on every lookup
 
 
    Number of Distinct Hand Values:
