@@ -9,7 +9,6 @@ service Poker {
     rpc CreatePlayers(Players) returns (Players){}
     rpc DeletePlayers(Players) returns (google.protobuf.Empty){}
     rpc GetPlayer(Player) returns (Player){}
-    rpc GetPlayerByName(Player) returns (Player){}
     rpc CreateGame(Game) returns (Game){}
     rpc GetGame(Game) returns (Game){}
     rpc DeleteGames(Games) returns (google.protobuf.Empty){}
@@ -120,5 +119,7 @@ message Round {
     Flop flop = 2;
 
     repeated Card deck = 3;
+
+    Players players = 4;
 
 }

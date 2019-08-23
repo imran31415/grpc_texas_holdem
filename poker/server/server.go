@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"imran/poker/models"
 	"log"
 	"math/rand"
 	"net"
@@ -39,33 +40,6 @@ type Server struct {
 	gormDb *gorm.DB
 }
 
-type Player struct {
-	gorm.Model
-	Name  string
-	Chips int64
-	Slot  int64
-	H1    string
-	H2    string
-}
-
-type GamePlayers struct {
-	gorm.Model
-	Player int64
-	Game   int64
-}
-
-type Game struct {
-	gorm.Model
-	Name   string
-	Dealer int64
-	Min    int64
-	f1     string
-	f2     string
-	f3     string
-	f4     string
-	f5     string
-}
-
 func NewServer(name string) (*Server, error) {
 	s := &Server{}
 	err := s.setupDatabase(name)
@@ -79,14 +53,14 @@ func (s *Server) setupDatabase(name string) error {
 		return err
 	}
 	// Setup Players table
-	if err := db.AutoMigrate(&Player{}).Error; err != nil {
+	if err := db.AutoMigrate(&models.Player{}).Error; err != nil {
 		return err
 	}
 
-	if err := db.AutoMigrate(&GamePlayers{}).Error; err != nil {
+	if err := db.AutoMigrate(&models.GamePlayers{}).Error; err != nil {
 		return err
 	}
-	if err := db.AutoMigrate(&Game{}).Error; err != nil {
+	if err := db.AutoMigrate(&models.Game{}).Error; err != nil {
 		return err
 	}
 
@@ -99,24 +73,25 @@ func (s *Server) CreatePlayer(ctx context.Context, p *pb.Player) (*pb.Player, er
 		return nil, ErrEmptyPlayerName
 	}
 
-	exists, err := s.GetPlayerByName(ctx, p)
+	exists, err := s.GetPlayersByName(ctx, &pb.Players{Players: []*pb.Player{p}})
 
 	if err != nil {
 		return nil, err
 	}
-
-	if exists.GetId() != 0 {
-		return nil, ErrPlayerNameExists
+	if len(exists.GetPlayers()) > 0 {
+		if exists.GetPlayers()[0].GetId() != 0 {
+			return nil, ErrPlayerNameExists
+		}
 	}
 
-	toCreate := &Player{Name: p.GetName(), Chips: p.GetChips()}
+	toCreate := &models.Player{}
+	toCreate.ProtoUnMarshal(p)
+
 	if err := s.gormDb.Create(toCreate).Error; err != nil {
 		return nil, err
 	}
 
-	player, err := s.GetPlayer(ctx, &pb.Player{
-		Id: int64(toCreate.Model.ID),
-	})
+	player, err := s.GetPlayer(ctx, toCreate.ProtoMarshal())
 	if err != nil {
 		return nil, err
 	}
@@ -138,112 +113,41 @@ func (s *Server) CreatePlayers(ctx context.Context, players *pb.Players) (*pb.Pl
 }
 
 func (s *Server) GetPlayer(ctx context.Context, in *pb.Player) (*pb.Player, error) {
-
-	p := &Player{
-		Model: gorm.Model{
-			ID: uint(in.GetId()),
-		},
-	}
-
+	p := &models.Player{}
 	if err := s.gormDb.Where("id = ?", uint(in.GetId())).First(&p).Error; err != nil {
 		return nil, err
-
 	}
-	return &pb.Player{
-		Id:    int64(p.ID),
-		Name:  p.Name,
-		Chips: int64(p.Chips),
-		Slot:  int64(p.Slot),
-	}, nil
+	return p.ProtoMarshal(), nil
 }
 
 func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Players, error) {
-	outs := []Player{}
-
+	outs := []*models.Player{}
 	ids := []int64{}
 
 	for _, n := range players.GetPlayers() {
 		ids = append(ids, n.GetId())
-		outs = append(outs, Player{
-			Model: gorm.Model{
-				ID: uint(n.GetId()),
-			},
-		})
 	}
-
 	s.gormDb.Where("id IN (?)", ids).Find(&outs)
-	out := &pb.Players{}
-
-	for _, inp := range outs {
-		out.Players = append(out.Players, &pb.Player{
-			Id:    int64(inp.ID),
-			Name:  inp.Name,
-			Chips: inp.Chips,
-			Slot:  inp.Slot,
-		})
-
-	}
-	return out, nil
-}
-
-func (s *Server) GetPlayerByName(ctx context.Context, in *pb.Player) (*pb.Player, error) {
-	if in.Name == "" {
-		return nil, ErrEmptyPlayerName
-	}
-	p := &Player{
-		Name: in.GetName(),
-	}
-
-	s.gormDb.Where("name", []string{"jinzhu", "jinzhu 2"}).Find(&p)
-	if err := s.gormDb.Where("name = ?", in.GetName()).Find(&p).Error; err != nil && err == gorm.ErrRecordNotFound {
-		return &pb.Player{}, nil
-	} else if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
-
-	} else {
-
-		return &pb.Player{
-			Id:    int64(p.ID),
-			Name:  p.Name,
-			Chips: int64(p.Chips),
-		}, nil
-	}
+	return models.MarshalPlayers(outs), nil
 }
 
 func (s *Server) GetPlayersByName(ctx context.Context, players *pb.Players) (*pb.Players, error) {
 
-	outs := []Player{}
-
+	outs := []*models.Player{}
 	names := []string{}
 
 	for _, n := range players.GetPlayers() {
 		names = append(names, n.GetName())
-		outs = append(outs, Player{
-			Name: n.GetName(),
-		})
 	}
 	s.gormDb.Where("name IN (?)", names).Find(&outs)
-	out := &pb.Players{}
 
-	// TODO switch this to be 1 query
-	for _, inp := range outs {
-		out.Players = append(out.Players, &pb.Player{
-			Id:    int64(inp.ID),
-			Name:  inp.Name,
-			Chips: inp.Chips,
-		})
-
-	}
-	return out, nil
+	return models.MarshalPlayers(outs), nil
 
 }
 
 func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
-	g := &Game{
-		Model: gorm.Model{
-			ID: uint(in.GetId()),
-		},
-	}
+
+	g := &models.Game{}
 
 	if err := s.gormDb.Where("id = (?)", in.GetId()).Find(g).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
@@ -263,13 +167,8 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 		return nil, err
 	}
 
-	game := &pb.Game{
-		Id:      int64(g.ID),
-		Name:    g.Name,
-		Players: players,
-		Dealer:  g.Dealer,
-		Min:     g.Min,
-	}
+	game := g.ProtoMarshal()
+	game.Players = players
 
 	return game, nil
 }
@@ -281,21 +180,15 @@ func (s *Server) DeleteGames(ctx context.Context, toDelete *pb.Games) (*empty.Em
 		ids = append(ids, game.GetId())
 	}
 
-	fmt.Println("Ids count is ", ids)
-
-	if err := s.gormDb.Where("id in (?)", ids).Find(&Game{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+	if err := s.gormDb.Where("id in (?)", ids).Find(&models.Game{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return &empty.Empty{}, err
 	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return &empty.Empty{}, ErrGameDoesntExist
 	}
 
-	if err := s.gormDb.Where("id in (?)", ids).Delete(&Game{}).Error; err != nil {
+	if err := s.gormDb.Where("id in (?)", ids).Delete(&models.Game{}).Error; err != nil {
 		return &empty.Empty{}, err
 	}
-
-	fmt.Println("ROWS", s.gormDb.RowsAffected)
-
-	fmt.Println("Deleted game count: ", len(ids))
 	return &empty.Empty{}, nil
 }
 
@@ -306,43 +199,31 @@ func (s *Server) DeletePlayers(ctx context.Context, toDelete *pb.Players) (*empt
 		ids = append(ids, player.GetId())
 	}
 
-	fmt.Println("Delete players Ids count is ", ids)
-	if err := s.gormDb.Where("id in (?)", ids).Find(&Player{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+	if err := s.gormDb.Where("id in (?)", ids).Find(&models.Player{}).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return &empty.Empty{}, err
 	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return &empty.Empty{}, ErrPlayerDoesntExist
 	}
 
-	if err := s.gormDb.Where("id in (?)", ids).Delete(&Player{}).Error; err != nil {
+	if err := s.gormDb.Where("id in (?)", ids).Delete(&models.Player{}).Error; err != nil {
 		return &empty.Empty{}, err
 	}
 
-	fmt.Println("ROWS", s.gormDb.RowsAffected)
-
-	fmt.Println("Deleted player count: ", len(ids))
 	return &empty.Empty{}, nil
 }
 
 func (s *Server) GetGameByName(ctx context.Context, in *pb.Game) (*pb.Game, error) {
-	g := Game{
-		Name: in.GetName(),
-	}
-
+	g := &models.Game{}
 	if err := s.gormDb.Where("name = ?", in.GetName()).Find(&g).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
-	return &pb.Game{
-		Id:   int64(g.ID),
-		Name: g.Name,
-	}, nil
+	return g.ProtoMarshal(), nil
 }
 
 func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.Players, error) {
-	gp := []GamePlayers{
-		{Game: in.GetId()},
-	}
+	gp := []*models.GamePlayers{}
 
 	if err := s.gormDb.Where("game = ?", in.GetId()).Find(&gp).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
@@ -356,8 +237,13 @@ func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.P
 			Id: int64(pId.Player),
 		})
 	}
+	// Get hydrated player instead of just their IDs
+	players, err := s.GetPlayers(ctx, out)
+	if err != nil {
+		return nil, err
+	}
 
-	return out, nil
+	return players, nil
 }
 
 // SetGamePlayers Sets the game players.
@@ -400,7 +286,7 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	}
 
 	for _, shouldAdd := range playersToJoinMap {
-		toCreate := &GamePlayers{Player: shouldAdd.GetId(), Game: g.GetId()}
+		toCreate := &models.GamePlayers{Player: shouldAdd.GetId(), Game: g.GetId()}
 		if err := s.gormDb.Create(toCreate).Error; err != nil {
 			return nil, err
 		}
@@ -415,15 +301,11 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 }
 
 func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, error) {
+
 	if p.GetSlot() > 8 || p.GetSlot() < 1 {
 		return nil, ErrInvalidSlotNumber
 	}
-
-	out := &Player{
-		Model: gorm.Model{
-			ID: uint(p.GetId()),
-		},
-	}
+	out := &models.Player{}
 
 	if err := s.gormDb.Where("id = ?", p.GetId()).Find(out).Update(
 		"slot", p.GetSlot()).Error; err != nil {
@@ -441,13 +323,17 @@ func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, e
 func (s *Server) AllocateGameSlots(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 
 	players := g.GetPlayers().GetPlayers()
+	if len(players) < 2 || len(players) > 8 {
+		return nil, ErrInvalidPlayerCount
+	}
 	for i, p := range players {
-		if i > 8 {
-			return nil, ErrInvalidPlayerCount
-		}
+
 		// start at 1 because 0 is the nil value of a slot so 0 signifies unassigned
 		slot := i + 1
 		p.Slot = int64(slot)
+	}
+
+	for _, p := range players {
 		_, err := s.SetPlayerSlot(ctx, p)
 		if err != nil {
 			return nil, err
@@ -475,11 +361,8 @@ func (s *Server) CreateGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 		return nil, ErrGameNameExists
 	}
 
-	toCreate := &Game{
-		Name:   g.GetName(),
-		Dealer: g.GetDealer(),
-		Min:    g.GetMin(),
-	}
+	toCreate := &models.Game{}
+	toCreate.ProtoUnMarshal(g)
 	if err := s.gormDb.Create(toCreate).Error; err != nil {
 		return nil, err
 	}
@@ -505,7 +388,7 @@ func (s *Server) SetButtonPositions(ctx context.Context, g *pb.Game) (*pb.Game, 
 		return nil, ErrGameDoesntExist
 	}
 
-	toUpdate := Game{
+	toUpdate := models.Game{
 		Min: g.GetMin(),
 		// Randomly allocate a dealer
 		Dealer: int64(rand.Intn(len(game.GetPlayers().GetPlayers()))) + 1,
@@ -549,7 +432,7 @@ func (s *Server) NextDealer(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	// Set new dealer to the current small blind
 	newDealer, err := r.MarshalValue()
 
-	toUpdate := Game{
+	toUpdate := models.Game{
 		Min: g.GetMin(),
 		// Randomly allocate a dealer
 		Dealer: newDealer.GetSlot(),
@@ -621,6 +504,9 @@ func (s *Server) ValidatePreGame(ctx context.Context, g *pb.Game) (*pb.Game, err
 				//The slots are not sequential, or there is a gap
 				return g, ErrInvalidSlotNumber
 			}
+		} else {
+			// slot should not be 0 if it is allocated
+			return g, ErrInvalidSlotNumber
 		}
 	}
 
