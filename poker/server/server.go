@@ -30,6 +30,7 @@ var (
 	ErrEmptyGameName           = fmt.Errorf("can not create game with empty name")
 	ErrTooManyPlayers          = fmt.Errorf("too many players to create game")
 	ErrInvalidSlotNumber       = fmt.Errorf("slot value invalid must be between 1-8")
+	ErrInvalidSlotMinMax       = fmt.Errorf("slot value is greater than 8 or less than 1")
 	ErrGameDoesntExist         = fmt.Errorf("no game found")
 	ErrInvalidButtonAllocation = fmt.Errorf("buttons are not allocated correctly")
 	ErrNoBetSet                = fmt.Errorf("no bet set for game")
@@ -309,7 +310,7 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, error) {
 
 	if p.GetSlot() > 8 || p.GetSlot() < 1 {
-		return nil, ErrInvalidSlotNumber
+		return nil, ErrInvalidSlotMinMax
 	}
 	out := &models.Player{}
 
@@ -463,17 +464,6 @@ func (s *Server) NextDealer(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 //  2. Slots are allocated to players incorrectly
 //  3. Button positions and bet is not set.
 func (s *Server) ValidatePreGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
-	game, err := s.GetGame(ctx, g)
-	if err != nil {
-		return g, err
-	}
-	if game == nil {
-		return g, ErrGameDoesntExist
-	}
-	// Need to have 2-8 players to play
-	if len(g.GetPlayers().GetPlayers()) < 2 || len(g.GetPlayers().GetPlayers()) > 8 {
-		return g, ErrInvalidPlayerCount
-	}
 
 	// mapping of user id to slot
 	slotMap := map[int64]int64{}
@@ -485,12 +475,15 @@ func (s *Server) ValidatePreGame(ctx context.Context, g *pb.Game) (*pb.Game, err
 	slotList := []int64{}
 
 	for _, player := range g.GetPlayers().GetPlayers() {
+
 		// Only seats 1-8 are valid
 		if player.GetSlot() < 1 || player.GetSlot() > 8 {
+
 			return g, ErrInvalidSlotNumber
 		}
 		// 2 players are allocated to the same slot
 		if _, ok := slotMap[player.GetId()]; ok {
+
 			return g, ErrInvalidSlotNumber
 		}
 		slotMap[player.GetId()] = player.GetSlot()
@@ -508,10 +501,11 @@ func (s *Server) ValidatePreGame(ctx context.Context, g *pb.Game) (*pb.Game, err
 			prev := slotList[i-1]
 			if !(prev < v) {
 				//The slots are not sequential, or there is a gap
+
 				return g, ErrInvalidSlotNumber
 			}
-		} else {
-			// slot should not be 0 if it is allocated
+		}
+		if v == 0 {
 			return g, ErrInvalidSlotNumber
 		}
 	}

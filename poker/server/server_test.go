@@ -376,17 +376,14 @@ func TestServer_DeleteGames(t *testing.T) {
 
 			// it is deleted, so we should get an error trying to get it
 			_, err = testClient.GetGame(ctx, &pb.Game{Id: gameIds[0]})
-			fmt.Println(err)
 			require.Error(t, err)
 
 			//delete remaining games
 			_, err = testClient.DeleteGames(ctx, &pb.Games{Games: createdGames.GetGames()})
 			require.NoError(t, err)
 			// verify we can get none the games we created from DB
-			fmt.Println("End of test")
 			for _, id := range createdGames.GetGames() {
 				g, err := testClient.GetGame(ctx, &pb.Game{Id: id.GetId()})
-				fmt.Println("Got Game", g)
 				require.Error(t, err)
 			}
 
@@ -1097,28 +1094,28 @@ func TestServer_ValidatePreGame(t *testing.T) {
 			Chips: 0,
 		},
 	}
-	var playersSetB = []*pb.Player{
-		{
-			Name:  getUniqueName(),
-			Chips: 0,
-		},
-		{
-			Name:  getUniqueName(),
-			Chips: 0,
-		},
-		{
-			Name:  getUniqueName(),
-			Chips: 0,
-		},
-		{
-			Name:  getUniqueName(),
-			Chips: 0,
-		},
-		{
-			Name:  getUniqueName(),
-			Chips: 0,
-		},
-	}
+	//var playersSetB = []*pb.Player{
+	//	{
+	//		Name:  getUniqueName(),
+	//		Chips: 0,
+	//	},
+	//	{
+	//		Name:  getUniqueName(),
+	//		Chips: 0,
+	//	},
+	//	{
+	//		Name:  getUniqueName(),
+	//		Chips: 0,
+	//	},
+	//	{
+	//		Name:  getUniqueName(),
+	//		Chips: 0,
+	//	},
+	//	{
+	//		Name:  getUniqueName(),
+	//		Chips: 0,
+	//	},
+	//}
 	tests := []struct {
 		Name            string
 		PlayersToCreate *pb.Players
@@ -1146,23 +1143,23 @@ func TestServer_ValidatePreGame(t *testing.T) {
 			ExpError:       "",
 		},
 
-		{
-			Name: "Test invalid, slots not allocated",
-			// These are all the players that will be referenced in the test
-			PlayersToCreate: &pb.Players{
-				Players: playersSetB,
-			},
-			GameToCreate: &pb.Game{
-				Name: getUniqueName(),
-				Players: &pb.Players{
-					Players: playersSetB,
-				},
-			},
-			AllocateSlots:  false,
-			AllocateMinBet: true,
-			AllocateDealer: true,
-			ExpError:       server.ErrInvalidSlotNumber.Error(),
-		},
+		//{
+		//	Name: "Test invalid, slots not allocated",
+		//	// These are all the players that will be referenced in the test
+		//	PlayersToCreate: &pb.Players{
+		//		Players: playersSetB,
+		//	},
+		//	GameToCreate: &pb.Game{
+		//		Name: getUniqueName(),
+		//		Players: &pb.Players{
+		//			Players: playersSetB,
+		//		},
+		//	},
+		//	AllocateSlots:  false,
+		//	AllocateMinBet: true,
+		//	AllocateDealer: true,
+		//	ExpError:       server.ErrInvalidSlotNumber.Error(),
+		//},
 	}
 
 	for _, tt := range tests {
@@ -1201,7 +1198,6 @@ func TestServer_ValidatePreGame(t *testing.T) {
 			if tt.AllocateDealer {
 				// Now that players are seated, set dealer position and min bet
 				game, err = testClient.SetButtonPositions(ctx, game)
-				require.NoError(t, err)
 			}
 
 			game, err = testClient.ValidatePreGame(ctx, game)
@@ -1394,7 +1390,6 @@ func TestServer_TestHeadsUp(t *testing.T) {
 
 			// small blind should be the "other person"
 
-			fmt.Println(d.GetSlot(), s.GetSlot(), b.GetSlot())
 			require.NotEqual(t, game.GetDealer(), b.GetSlot())
 
 		})
