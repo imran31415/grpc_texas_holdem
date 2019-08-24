@@ -383,7 +383,7 @@ func TestServer_DeleteGames(t *testing.T) {
 			require.NoError(t, err)
 			// verify we can get none the games we created from DB
 			for _, id := range createdGames.GetGames() {
-				g, err := testClient.GetGame(ctx, &pb.Game{Id: id.GetId()})
+				_, err := testClient.GetGame(ctx, &pb.Game{Id: id.GetId()})
 				require.Error(t, err)
 			}
 
@@ -393,6 +393,8 @@ func TestServer_DeleteGames(t *testing.T) {
 }
 
 func TestServer_SetGamePlayers(t *testing.T) {
+
+	testGame := getUniqueName()
 
 	tests := []struct {
 		Name               string
@@ -441,7 +443,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 				},
 			},
 			GameToCreate: &pb.Game{
-				Name: "testgame1",
+				Name: testGame,
 				Players: &pb.Players{
 					Players: []*pb.Player{
 						// all are new players
@@ -469,7 +471,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 				},
 			},
 			SecondSetOfPlayers: &pb.Game{
-				Name: "testgame1",
+				Name: testGame,
 				Players: &pb.Players{
 					Players: []*pb.Player{
 						{
@@ -488,7 +490,7 @@ func TestServer_SetGamePlayers(t *testing.T) {
 				},
 			},
 			ThirdSetOfPlayers: &pb.Game{
-				Name: "testgame1",
+				Name: testGame,
 				Players: &pb.Players{
 					Players: []*pb.Player{
 						{
@@ -1094,28 +1096,28 @@ func TestServer_ValidatePreGame(t *testing.T) {
 			Chips: 0,
 		},
 	}
-	//var playersSetB = []*pb.Player{
-	//	{
-	//		Name:  getUniqueName(),
-	//		Chips: 0,
-	//	},
-	//	{
-	//		Name:  getUniqueName(),
-	//		Chips: 0,
-	//	},
-	//	{
-	//		Name:  getUniqueName(),
-	//		Chips: 0,
-	//	},
-	//	{
-	//		Name:  getUniqueName(),
-	//		Chips: 0,
-	//	},
-	//	{
-	//		Name:  getUniqueName(),
-	//		Chips: 0,
-	//	},
-	//}
+	var playersSetB = []*pb.Player{
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+	}
 	tests := []struct {
 		Name            string
 		PlayersToCreate *pb.Players
@@ -1143,23 +1145,23 @@ func TestServer_ValidatePreGame(t *testing.T) {
 			ExpError:       "",
 		},
 
-		//{
-		//	Name: "Test invalid, slots not allocated",
-		//	// These are all the players that will be referenced in the test
-		//	PlayersToCreate: &pb.Players{
-		//		Players: playersSetB,
-		//	},
-		//	GameToCreate: &pb.Game{
-		//		Name: getUniqueName(),
-		//		Players: &pb.Players{
-		//			Players: playersSetB,
-		//		},
-		//	},
-		//	AllocateSlots:  false,
-		//	AllocateMinBet: true,
-		//	AllocateDealer: true,
-		//	ExpError:       server.ErrInvalidSlotNumber.Error(),
-		//},
+		{
+			Name: "Test invalid, slots not allocated",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: playersSetB,
+			},
+			GameToCreate: &pb.Game{
+				Name: getUniqueName(),
+				Players: &pb.Players{
+					Players: playersSetB,
+				},
+			},
+			AllocateSlots:  false,
+			AllocateMinBet: true,
+			AllocateDealer: true,
+			ExpError:       server.ErrInvalidSlotNumber.Error(),
+		},
 	}
 
 	for _, tt := range tests {
@@ -1391,6 +1393,121 @@ func TestServer_TestHeadsUp(t *testing.T) {
 			// small blind should be the "other person"
 
 			require.NotEqual(t, game.GetDealer(), b.GetSlot())
+
+		})
+	}
+}
+
+func TestServer_RemovePlayerFromGame(t *testing.T) {
+
+	var playerToRemove1 = &pb.Player{
+		Name:  getUniqueName(),
+		Chips: 0,
+	}
+	var playerToRemove2 = &pb.Player{
+		Name:  getUniqueName(),
+		Chips: 0,
+	}
+
+	var playersSetA = []*pb.Player{
+		playerToRemove1,
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		playerToRemove2,
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+	}
+
+	tests := []struct {
+		Name                 string
+		PlayersToCreate      *pb.Players
+		GameToCreate         *pb.Game
+		PlayerToRemoveFirst  *pb.Player
+		PlayerToRemoveSecond *pb.Player
+		ExpError             string
+	}{
+		{
+			Name: "Create game players and remove some",
+			PlayersToCreate: &pb.Players{
+				Players: playersSetA,
+			},
+			GameToCreate: &pb.Game{
+				Name: getUniqueName(),
+				Players: &pb.Players{
+					Players: playersSetA,
+				},
+			},
+			PlayerToRemoveFirst:  playerToRemove1,
+			PlayerToRemoveSecond: playerToRemove2,
+
+			ExpError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
+			require.NoError(t, err)
+			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
+			// Create the initial game
+			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
+			require.NoError(t, err)
+
+			game.Players = tt.GameToCreate.GetPlayers()
+
+			// Set the initial game players
+			_, err = testClient.SetGamePlayers(ctx, game)
+			require.NoError(t, err)
+
+			// validate the number of initial players is correct
+			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+
+			// Remove the first player we want to remove
+			playerToRemoveFirst, err := testClient.GetPlayersByName(
+				ctx,
+				&pb.Players{Players: []*pb.Player{
+					tt.PlayerToRemoveFirst,
+				},
+				})
+			require.Equal(t, 1, len(playerToRemoveFirst.GetPlayers()))
+			p := playerToRemoveFirst.GetPlayers()[0]
+			_, err = testClient.RemovePlayerFromGame(ctx, p)
+			require.NoError(t, err)
+
+			// validate the number of  players after removing 1 player is correct
+			players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers())-1, len(players.GetPlayers()))
+
+			// Remove the second player we want to remove
+			playerToRemoveSecond, err := testClient.GetPlayersByName(
+				ctx,
+				&pb.Players{Players: []*pb.Player{
+					tt.PlayerToRemoveSecond,
+				},
+				})
+			require.Equal(t, 1, len(playerToRemoveSecond.GetPlayers()))
+			p = playerToRemoveSecond.GetPlayers()[0]
+			_, err = testClient.RemovePlayerFromGame(ctx, p)
+			require.NoError(t, err)
+
+			// validate the number of  players after removing 2 players is correct
+			players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers())-2, len(players.GetPlayers()))
 
 		})
 	}

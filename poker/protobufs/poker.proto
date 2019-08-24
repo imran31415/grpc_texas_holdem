@@ -21,8 +21,9 @@ service Poker {
     rpc SetButtonPositions(Game) returns (Game){}
     rpc ValidatePreGame(Game) returns (Game){}
     rpc NextDealer(Game) returns (Game){}
-    rpc CreateRoundFromGame(Game) returns (Round){}
-    rpc GetRoundsFromGame(Game) returns (Round){}
+//    rpc CreateRoundFromGame(Game) returns (Round){}
+//    rpc GetRoundsFromGame(Game) returns (Round){}
+    rpc RemovePlayerFromGame(Player) returns(google.protobuf.Empty) {}
 }
 
 

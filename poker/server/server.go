@@ -281,13 +281,12 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 	}
 
 	//3. Get the players requesting to be added to the game
-
 	playersToJoinRecords, err := s.GetPlayersByName(ctx, g.GetPlayers())
 	if err != nil {
 		return nil, err
 	}
 
-	// 3.a create a map of requesting playerIds to whether they should join
+	// 3.a create a map of requesting playerIds to boolean of if they should join
 	playersToJoinMap := map[int64]*pb.Player{}
 	for _, p := range playersToJoinRecords.GetPlayers() {
 		// Player is not already on the game list
@@ -523,6 +522,21 @@ func (s *Server) ValidatePreGame(ctx context.Context, g *pb.Game) (*pb.Game, err
 	}
 
 	return g, nil
+}
+
+func (s *Server) RemovePlayerFromGame(ctx context.Context, player *pb.Player) (*empty.Empty, error) {
+
+	if err := s.gormDb.Where("player in (?)", player.GetId()).Find(&models.GamePlayers{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return &empty.Empty{}, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
+		return &empty.Empty{}, ErrPlayerDoesntExist
+	}
+
+	if err := s.gormDb.Where("player in (?)", player.GetId()).Delete(&models.GamePlayers{}).Error; err != nil {
+		return &empty.Empty{}, err
+	}
+	return &empty.Empty{}, nil
+
 }
 
 func Run() {
