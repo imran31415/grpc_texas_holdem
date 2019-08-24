@@ -923,6 +923,8 @@ func TestServer_SetButtonPositions(t *testing.T) {
 
 			// Now that players are seated, set dealer position
 			game, err = testClient.SetButtonPositions(ctx, game)
+			game.Min = 100
+			game, err = testClient.SetMin(ctx, game)
 			require.NoError(t, err)
 			// assert min is set.
 			assert.Equal(t, int64(100), game.GetMin())
@@ -1126,6 +1128,7 @@ func TestServer_ValidatePreGame(t *testing.T) {
 		AllocateSlots   bool
 		AllocateMinBet  bool
 		AllocateDealer  bool
+		MinBet          int64
 		ExpError        string
 	}{
 		{
@@ -1143,6 +1146,7 @@ func TestServer_ValidatePreGame(t *testing.T) {
 			AllocateSlots:  true,
 			AllocateMinBet: true,
 			AllocateDealer: true,
+			MinBet:         100,
 			ExpError:       "",
 		},
 
@@ -1161,6 +1165,7 @@ func TestServer_ValidatePreGame(t *testing.T) {
 			AllocateSlots:  false,
 			AllocateMinBet: true,
 			AllocateDealer: true,
+			MinBet:         100,
 			ExpError:       server.ErrInvalidSlotNumber.Error(),
 		},
 	}
@@ -1194,13 +1199,16 @@ func TestServer_ValidatePreGame(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			if tt.AllocateMinBet {
-				game.Min = int64(100)
-			}
-
 			if tt.AllocateDealer {
 				// Now that players are seated, set dealer position and min bet
 				game, err = testClient.SetButtonPositions(ctx, game)
+				require.NoError(t, err)
+			}
+			if tt.AllocateMinBet {
+				game.Min = tt.MinBet
+				game, err = testClient.SetMin(ctx, game)
+				require.NoError(t, err)
+
 			}
 
 			game, err = testClient.ValidatePreGame(ctx, game)
@@ -1354,7 +1362,11 @@ func TestServer_TestHeadsUp(t *testing.T) {
 			// Now that players are seated, set dealer position
 			game, err = testClient.SetButtonPositions(ctx, game)
 			require.NoError(t, err)
-			// assert min is set.
+
+			game.Min = 100
+
+			game, err = testClient.SetMin(ctx, game)
+			require.NoError(t, err)
 			assert.Equal(t, int64(100), game.GetMin())
 
 			// assert dealer is set
@@ -1558,6 +1570,93 @@ func TestServer_RemovePlayerFromGame(t *testing.T) {
 			p = playerToRemoveInRound.GetPlayers()[0]
 			_, err = testClient.RemovePlayerFromGame(ctx, p)
 			require.Equal(t, rpcError(server.ErrGameInRound.Error()), err.Error())
+
+		})
+	}
+}
+
+func TestServer_CreateRoundFromGame(t *testing.T) {
+
+	var playersSetA = []*pb.Player{
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+		{
+			Name:  getUniqueName(),
+			Chips: 0,
+		},
+	}
+
+	tests := []struct {
+		Name            string
+		PlayersToCreate *pb.Players
+		GameToCreate    *pb.Game
+		ExpError        string
+	}{
+		{
+			Name: "Create game players",
+			// These are all the players that will be referenced in the test
+			PlayersToCreate: &pb.Players{
+				Players: playersSetA,
+			},
+			GameToCreate: &pb.Game{
+				Name: getUniqueName(),
+				Players: &pb.Players{
+					Players: playersSetA,
+				},
+			},
+
+			ExpError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
+			require.NoError(t, err)
+			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
+			// Create the initial game
+			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
+			require.NoError(t, err)
+
+			game.Players = tt.GameToCreate.GetPlayers()
+
+			// Set the initial game players
+			_, err = testClient.SetGamePlayers(ctx, game)
+			require.NoError(t, err)
+
+			// validate the number of initial players is correct
+			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+			require.NoError(t, err)
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+
+			// get the game and get it to a ready state
+			gameToAllocate, err := testClient.GetGame(ctx, game)
+			require.NoError(t, err)
+			allocatedGame, err := testClient.AllocateGameSlots(ctx, gameToAllocate)
+			require.NoError(t, err)
+			buttonSetGame, err := testClient.SetButtonPositions(ctx, allocatedGame)
+			require.NoError(t, err)
+			readyGame, err := testClient.SetMin(ctx, buttonSetGame)
+			require.NoError(t, err)
+
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(readyGame.GetPlayers().GetPlayers()))
 
 		})
 	}

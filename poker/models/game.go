@@ -34,7 +34,7 @@ func (g *Game) ProtoMarshal() *pb.Game {
 	}
 }
 
-func (g *Game) MarshalRound() *pb.Round{
+func (g *Game) MarshalRound() *pb.Round {
 	d := deck.New()
 
 	return &pb.Round{

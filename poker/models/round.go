@@ -18,7 +18,7 @@ type Round struct {
 
 type RoundPlayers struct {
 	gorm.Model
-	Round int64
+	Round  int64
 	Player int64
 	Game   int64
 }

@@ -21,6 +21,7 @@ service Poker {
     rpc DeleteGames(Games) returns (google.protobuf.Empty){}
     rpc AllocateGameSlots(Game) returns (Game){}
     rpc SetButtonPositions(Game) returns (Game){}
+    rpc SetMin(Game) returns (Game){}
     rpc ValidatePreGame(Game) returns (Game){}
     rpc NextDealer(Game) returns (Game){}
     rpc UpdateGameInRound(Game) returns (Game){}
