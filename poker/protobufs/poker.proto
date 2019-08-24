@@ -23,81 +23,31 @@ service Poker {
     rpc NextDealer(Game) returns (Game){}
 }
 
-message Card {
-    enum Suit {
-        UNKNOWN_SUIT = 0;
-        HEARTS = 1;
-        DIAMONDS = 2;
-        CLUBS = 3;
-        SPADES = 4;
-    }
-
-    enum Rank {
-        UNKNOWN_RANK = 0;
-        ACE = 1;
-        TWO = 2;
-        THREE = 3;
-        FOUR = 4;
-        FIVE = 5;
-        SIX = 6;
-        SEVEN = 7;
-        EIGHT = 8;
-        NINE = 9;
-        TEN = 10;
-        JACK = 11;
-        QUEEN = 12;
-        KING = 13;
-    }
-
-    Suit suit = 1;
-    Rank rank = 2;
-}
-
-
-
-message Deck {
-    repeated Card cards = 1;
-}
 
 message Player {
     int64 id = 1;
     string name = 2;
     int64 chips = 3;
-    Hand hand = 4;
     // What seat at the table they are at 1-8 only
-    int64 slot = 5;
+    int64 slot = 4;
     // Whether they are in a hand
-    bool in_hand = 6;
+    bool in_hand = 5;
+    string cards = 6;
 }
 
 message Players {
     repeated Player players= 1;
 }
 
-message Hand {
-    Card one = 1;
-    Card two = 2;
-}
-
-message Flop {
-    Card one = 1;
-    Card two = 2;
-    Card three =3;
-    Card four =4;
-    Card five =5;
-}
-
-
 message Game {
 
      Players players = 1;
      string name = 2;
-
      // button positions
      int64 id = 3;
      int64 dealer = 4;
      int64 min = 5;
-     Round round = 6;
+     Rounds rounds = 6;
 }
 
 message Games {
@@ -116,10 +66,43 @@ message Round {
         OVER = 6;        // Winner has been determined and chips have been disbursed
     }
     Status status = 1;
-    Flop flop = 2;
 
-    repeated Card deck = 3;
+    Players players = 2;
+    string deck = 3;
+    string flop = 4;
+    string turn = 5;
+    string river = 6;
+    Bets bets = 7;
+}
 
-    Players players = 4;
+message Rounds {
+    repeated Round rounds = 1;
+}
 
+message Bet{
+    enum Status {
+        NOT_STARTED = 0; // No betting
+        PRE_FLOP = 1;    // first round of betting is happening
+        FLOP = 2;        // second round of betting
+        RIVER = 3;       // third round of betting
+        TURN = 4;        // final round of betting
+        SHOW = 5;        // All bets are closed and we show any hands remaining
+        OVER = 6;        // Winner has been determined and chips have been disbursed
+    }
+    Status status = 1;
+    int64 round = 2;
+    int64 game = 3;
+    int64 player = 4;
+    int64 chips = 5;
+    enum BetType {
+        NONE = 0;
+        FOLD = 1;
+        CALL = 2;
+        RAISE = 3;
+    }
+    BetType type = 6;
+}
+
+message Bets {
+    repeated Bet bets = 1;
 }

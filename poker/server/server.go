@@ -63,6 +63,12 @@ func (s *Server) setupDatabase(name string) error {
 	if err := db.AutoMigrate(&models.Game{}).Error; err != nil {
 		return err
 	}
+	if err := db.AutoMigrate(&models.Round{}).Error; err != nil {
+		return err
+	}
+	if err := db.AutoMigrate(&models.RoundPlayers{}).Error; err != nil {
+		return err
+	}
 
 	s.gormDb = db
 	return nil

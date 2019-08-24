@@ -10,6 +10,7 @@ type Player struct {
 	Name  string
 	Chips int64
 	Slot  int64
+	Cards string
 }
 
 type GamePlayers struct {
@@ -42,8 +43,9 @@ type Round struct {
 // Each card is associated to a round, deck, and possible a player
 type Cards struct {
 	gorm.Model
-	RoundPla int64 // Id of the game
-
+	Cards string
+	Game   int64
+	Round  int64
 }
 
 // ProtoUnMarshal gets db representation of the protobuf
