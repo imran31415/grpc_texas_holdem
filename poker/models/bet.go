@@ -39,27 +39,3 @@ func (b *Bet) ProtoMarshal() *pb.Bet {
 		Type:   pb.Bet_BetType(pb.Bet_BetType_value[b.Type]),
 	}
 }
-
-//message Bet{
-//enum Status {
-//NOT_STARTED = 0; // No betting
-//PRE_FLOP = 1;    // first round of betting is happening
-//FLOP = 2;        // second round of betting
-//RIVER = 3;       // third round of betting
-//TURN = 4;        // final round of betting
-//SHOW = 5;        // All bets are closed and we show any hands remaining
-//OVER = 6;        // Winner has been determined and chips have been disbursed
-//}
-//Status status = 1;
-//int64 round = 2;
-//int64 game = 3;
-//int64 player = 4;
-//int64 chips = 5;
-//enum BetType {
-//NONE = 0;
-//FOLD = 1;
-//CALL = 2;
-//RAISE = 3;
-//}
-//BetType type = 6;
-//}

@@ -16,13 +16,11 @@ type Round struct {
 	Game   int64
 }
 
-
 type RoundPlayers struct {
 	gorm.Model
 	Player int64
 	Game   int64
 }
-
 
 func (r *Round) ProtoUnMarshal(round *pb.Round) {
 	r.Model.ID = uint(round.GetId())
@@ -46,4 +44,3 @@ func (p *Round) ProtoMarshal() *pb.Round {
 		Status: pb.Round_Status(pb.Round_Status_value[p.Status]),
 	}
 }
-

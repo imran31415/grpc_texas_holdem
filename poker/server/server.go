@@ -71,6 +71,10 @@ func (s *Server) setupDatabase(name string) error {
 		return err
 	}
 
+	if err := db.AutoMigrate(&models.Bet{}).Error; err != nil {
+		return err
+	}
+
 	s.gormDb = db
 	return nil
 }
