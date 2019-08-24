@@ -34,6 +34,7 @@ func getUniqueName() string {
 	return fmt.Sprintf("testName_%d", ops)
 }
 
+// Generates an error message from the server that matches what is returned by the grpc errors .Error() inverface
 func rpcError(s string) string {
 	return fmt.Sprintf("rpc error: code = Unknown desc = %s", s)
 }
@@ -1409,6 +1410,16 @@ func TestServer_RemovePlayerFromGame(t *testing.T) {
 		Chips: 0,
 	}
 
+	var playerToRemoveInRound = &pb.Player{
+		Name:  getUniqueName(),
+		Chips: 0,
+	}
+
+	var playerToRemoveDoesntExist = &pb.Player{
+		Name:  getUniqueName(),
+		Chips: 0,
+	}
+
 	var playersSetA = []*pb.Player{
 		playerToRemove1,
 		{
@@ -1424,20 +1435,25 @@ func TestServer_RemovePlayerFromGame(t *testing.T) {
 			Name:  getUniqueName(),
 			Chips: 0,
 		},
+		playerToRemoveInRound,
 	}
 
+	var allPlayersToCreate = append(playersSetA, playerToRemoveDoesntExist)
+	allPlayersToCreate = append(allPlayersToCreate)
 	tests := []struct {
-		Name                 string
-		PlayersToCreate      *pb.Players
-		GameToCreate         *pb.Game
-		PlayerToRemoveFirst  *pb.Player
-		PlayerToRemoveSecond *pb.Player
-		ExpError             string
+		Name                  string
+		PlayersToCreate       *pb.Players
+		GameToCreate          *pb.Game
+		PlayerToRemoveFirst   *pb.Player
+		PlayerToRemoveSecond  *pb.Player
+		PlayerNotInGame       *pb.Player
+		PlayerToRemoveInRound *pb.Player
+		ExpError              string
 	}{
 		{
 			Name: "Create game players and remove some",
 			PlayersToCreate: &pb.Players{
-				Players: playersSetA,
+				Players: allPlayersToCreate,
 			},
 			GameToCreate: &pb.Game{
 				Name: getUniqueName(),
@@ -1445,8 +1461,10 @@ func TestServer_RemovePlayerFromGame(t *testing.T) {
 					Players: playersSetA,
 				},
 			},
-			PlayerToRemoveFirst:  playerToRemove1,
-			PlayerToRemoveSecond: playerToRemove2,
+			PlayerToRemoveFirst:   playerToRemove1,
+			PlayerToRemoveSecond:  playerToRemove2,
+			PlayerNotInGame:       playerToRemoveDoesntExist,
+			PlayerToRemoveInRound: playerToRemoveInRound,
 
 			ExpError: "",
 		},
@@ -1508,6 +1526,38 @@ func TestServer_RemovePlayerFromGame(t *testing.T) {
 			players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
 			require.NoError(t, err)
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers())-2, len(players.GetPlayers()))
+
+			// Remove a player that doesn't exist in the game
+			playerToRemove, err := testClient.GetPlayersByName(
+				ctx,
+				&pb.Players{Players: []*pb.Player{
+					tt.PlayerNotInGame,
+				},
+				})
+			//player exists but is not in game
+			require.Equal(t, 1, len(playerToRemove.GetPlayers()))
+			p = playerToRemove.GetPlayers()[0]
+			// This should return error since player was not in the game
+			_, err = testClient.RemovePlayerFromGame(ctx, p)
+			require.Equal(t, rpcError(server.ErrPlayerDoesntExist.Error()), err.Error())
+
+			// Set the game in round to true
+			game, err = testClient.UpdateGameInRound(ctx, game)
+			require.NoError(t, err)
+			require.Equal(t, true, game.GetInRound())
+
+			// Try to remove the third playe
+			// This should fgail since the game is now InRound=true
+			playerToRemoveInRound, err := testClient.GetPlayersByName(
+				ctx,
+				&pb.Players{Players: []*pb.Player{
+					tt.PlayerToRemoveInRound,
+				},
+				})
+			require.Equal(t, 1, len(playerToRemoveInRound.GetPlayers()))
+			p = playerToRemoveInRound.GetPlayers()[0]
+			_, err = testClient.RemovePlayerFromGame(ctx, p)
+			require.Equal(t, rpcError(server.ErrGameInRound.Error()), err.Error())
 
 		})
 	}

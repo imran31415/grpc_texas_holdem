@@ -35,6 +35,7 @@ var (
 	ErrInvalidButtonAllocation = fmt.Errorf("buttons are not allocated correctly")
 	ErrNoBetSet                = fmt.Errorf("no bet set for game")
 	ErrPlayerDoesntExist       = fmt.Errorf("player doesn't exist")
+	ErrGameInRound             = fmt.Errorf("can not perform operation when game is in round")
 )
 
 type Server struct {
@@ -526,16 +527,55 @@ func (s *Server) ValidatePreGame(ctx context.Context, g *pb.Game) (*pb.Game, err
 
 func (s *Server) RemovePlayerFromGame(ctx context.Context, player *pb.Player) (*empty.Empty, error) {
 
-	if err := s.gormDb.Where("player in (?)", player.GetId()).Find(&models.GamePlayers{}).Error; err != nil && err != gorm.ErrRecordNotFound {
+	gp := &models.GamePlayers{}
+	game := &models.Game{}
+
+	if err := s.gormDb.Where("player in (?)", player.GetId()).Find(gp).Error; err != nil && err != gorm.ErrRecordNotFound {
 		return &empty.Empty{}, err
 	} else if err != nil && err == gorm.ErrRecordNotFound {
 		return &empty.Empty{}, ErrPlayerDoesntExist
+	}
+
+	if err := s.gormDb.Where("id in (?)", gp.Game).Find(game).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return &empty.Empty{}, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
+		return &empty.Empty{}, ErrGameDoesntExist
+	}
+
+	if game.InRound {
+		return &empty.Empty{}, ErrGameInRound
 	}
 
 	if err := s.gormDb.Where("player in (?)", player.GetId()).Delete(&models.GamePlayers{}).Error; err != nil {
 		return &empty.Empty{}, err
 	}
 	return &empty.Empty{}, nil
+}
+
+func (s *Server) UpdateGameInRound(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+	game, err := s.GetGame(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	if game == nil {
+		return nil, ErrGameDoesntExist
+	}
+
+	game.InRound = true
+
+	toUpdate := &models.Game{}
+	toUpdate.ProtoUnMarshal(game)
+
+	if err := s.gormDb.Where("id = ?", game.GetId()).Find(game).Updates(toUpdate).Error; err != nil {
+		return nil, err
+	}
+
+	out, err := s.GetGame(ctx, g)
+
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 
 }
 
