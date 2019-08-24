@@ -669,61 +669,64 @@ func init() {
 func init() { proto.RegisterFile("protobufs/poker.proto", fileDescriptor_818c499f6358623d) }
 
 var fileDescriptor_818c499f6358623d = []byte{
-	// 853 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x55, 0xdd, 0x6e, 0xe3, 0x44,
-	0x14, 0x8e, 0xe3, 0x9f, 0x24, 0x27, 0x4d, 0xd6, 0x1d, 0x96, 0x62, 0x8a, 0x04, 0xc5, 0x62, 0x17,
-	0x43, 0x85, 0x03, 0x01, 0x84, 0xb8, 0x42, 0xcd, 0x36, 0xdb, 0xad, 0x54, 0x25, 0xd1, 0x38, 0xbb,
-	0x48, 0xdc, 0x54, 0x6e, 0x3d, 0xdb, 0xb5, 0xd6, 0xb1, 0x2d, 0x7b, 0xb2, 0x22, 0x0f, 0x00, 0xcf,
-	0xc5, 0x23, 0xc0, 0x1b, 0xa1, 0x39, 0x33, 0x49, 0x9c, 0x94, 0x26, 0xdc, 0xec, 0xdd, 0x39, 0x73,
-	0x7e, 0xe6, 0x7c, 0xdf, 0x77, 0x3c, 0x86, 0x0f, 0xf3, 0x22, 0xe3, 0xd9, 0xcd, 0xfc, 0x75, 0xd9,
-	0xcb, 0xb3, 0xb7, 0xac, 0xf0, 0xd1, 0x27, 0x26, 0x3a, 0xc7, 0x9f, 0xdc, 0x65, 0xd9, 0x5d, 0xc2,
-	0x7a, 0xcb, 0xa4, 0x1e, 0x9b, 0xe5, 0x7c, 0x21, 0x73, 0xdc, 0x3f, 0x34, 0xb0, 0x26, 0x49, 0xb8,
-	0x60, 0x05, 0xe9, 0x42, 0x3d, 0x8e, 0x1c, 0xed, 0x44, 0xf3, 0x74, 0x5a, 0x8f, 0x23, 0x42, 0xc0,
-	0x48, 0xc3, 0x19, 0x73, 0xea, 0x27, 0x9a, 0xd7, 0xa2, 0x68, 0x93, 0xc7, 0x60, 0xde, 0xbe, 0x89,
-	0xf3, 0xd2, 0xd1, 0x31, 0x4d, 0x3a, 0x22, 0xb3, 0x4c, 0x32, 0xee, 0x18, 0x78, 0x88, 0x36, 0xf9,
-	0x08, 0x1a, 0x71, 0x7a, 0xfd, 0x26, 0x4c, 0x23, 0xc7, 0x3c, 0xd1, 0xbc, 0x26, 0xb5, 0xe2, 0xf4,
-	0x45, 0x98, 0x46, 0xd8, 0x22, 0x2c, 0xa2, 0xd2, 0xb1, 0xb0, 0xaf, 0x74, 0xdc, 0x3e, 0x34, 0xe4,
-	0x18, 0x25, 0xf9, 0x12, 0x1a, 0xb9, 0x34, 0x1d, 0xed, 0x44, 0xf7, 0xda, 0xfd, 0x8e, 0x2f, 0x51,
-	0xc9, 0x04, 0xba, 0x8c, 0xba, 0x7f, 0x69, 0x60, 0x5c, 0x88, 0xa9, 0xbc, 0x6a, 0x85, 0xe6, 0xb5,
-	0xfb, 0xdd, 0x8d, 0x8a, 0x72, 0x55, 0xf2, 0x9f, 0x98, 0x24, 0x6e, 0x7d, 0x85, 0xfb, 0x08, 0xac,
-	0x88, 0x85, 0x09, 0x2b, 0x14, 0x1e, 0xe5, 0x11, 0x1b, 0xf4, 0x59, 0x9c, 0x22, 0x1a, 0x9d, 0x0a,
-	0x93, 0x3c, 0x01, 0xab, 0xc8, 0xe6, 0xa9, 0xc2, 0xb2, 0x1e, 0x94, 0xe2, 0x21, 0x55, 0x41, 0xf2,
-	0x31, 0x34, 0xe3, 0xf4, 0x1a, 0x1d, 0xa7, 0x81, 0x5c, 0x34, 0xe2, 0x14, 0x73, 0xdc, 0xaf, 0xc1,
-	0x14, 0x08, 0x4a, 0xf2, 0x39, 0x98, 0x77, 0xc2, 0x50, 0x90, 0xdb, 0xaa, 0x93, 0x08, 0x52, 0x19,
-	0x71, 0xff, 0xa9, 0x83, 0x89, 0x55, 0xf7, 0x94, 0x3a, 0x05, 0xab, 0xe4, 0x21, 0x9f, 0x97, 0x88,
-	0xab, 0xdb, 0xff, 0xa0, 0x3a, 0x87, 0x1f, 0x60, 0x88, 0xaa, 0x94, 0x2a, 0x59, 0xfa, 0x5e, 0xb2,
-	0x22, 0x76, 0xfb, 0x16, 0x69, 0x68, 0x51, 0xb4, 0xc5, 0xd9, 0xeb, 0x24, 0xcb, 0x91, 0x85, 0x16,
-	0x45, 0x5b, 0x9c, 0xf1, 0x79, 0x91, 0x2a, 0x41, 0xd1, 0x16, 0x2a, 0x17, 0xf1, 0x3b, 0x56, 0x20,
-	0xe0, 0x16, 0x95, 0x0e, 0xf9, 0x0c, 0x8c, 0x1b, 0xc6, 0x4b, 0xa7, 0x89, 0x17, 0x2f, 0x41, 0x0e,
-	0x18, 0x2f, 0x29, 0x06, 0x44, 0x2b, 0x01, 0xd6, 0x69, 0xc9, 0x4d, 0x12, 0xb6, 0xfb, 0x1b, 0x58,
-	0x12, 0x02, 0x79, 0x04, 0xed, 0xd1, 0x78, 0x7a, 0x1d, 0x4c, 0xcf, 0xe8, 0x74, 0x78, 0x6e, 0xd7,
-	0xc8, 0x01, 0x34, 0x27, 0x74, 0x78, 0xfd, 0xfc, 0x6a, 0x3c, 0xb1, 0x35, 0xd2, 0x04, 0x03, 0xad,
-	0x3a, 0x69, 0x81, 0x49, 0x2f, 0x5f, 0x0d, 0xa9, 0xad, 0x8b, 0xc3, 0xe9, 0x4b, 0x3a, 0xb2, 0x0d,
-	0x61, 0x05, 0x2f, 0xc6, 0xbf, 0xda, 0xa6, 0xb0, 0xc6, 0x22, 0x6a, 0xb9, 0x3e, 0x58, 0x52, 0x2c,
-	0xf2, 0xc5, 0x4a, 0x4b, 0xa9, 0xc0, 0x41, 0x95, 0xc3, 0xa5, 0x94, 0xee, 0xdf, 0x75, 0xd0, 0x07,
-	0x8c, 0xdf, 0x53, 0xe0, 0xab, 0x2d, 0x05, 0x0e, 0xd7, 0xd0, 0xb6, 0xf9, 0x17, 0xcc, 0xe0, 0x2a,
-	0xa8, 0x4f, 0x08, 0x9d, 0x15, 0x70, 0x63, 0x0d, 0x5c, 0x2c, 0xa2, 0x94, 0x42, 0xed, 0x9c, 0xf2,
-	0xd6, 0x1f, 0xa1, 0x55, 0xfd, 0x08, 0x9f, 0x82, 0xc1, 0x17, 0x39, 0x43, 0xc2, 0xbb, 0x7d, 0x52,
-	0x19, 0x60, 0xc0, 0xf8, 0x74, 0x91, 0x33, 0x8a, 0xf1, 0xf7, 0x4a, 0x67, 0x1f, 0x1a, 0xea, 0x32,
-	0x71, 0x38, 0x1a, 0x8f, 0x86, 0x76, 0x0d, 0xfb, 0x8c, 0xaf, 0xce, 0x65, 0xc7, 0x67, 0x67, 0x57,
-	0x57, 0xaa, 0xe3, 0xd9, 0x65, 0x30, 0xb4, 0x75, 0xf7, 0x29, 0x18, 0x62, 0x01, 0xc8, 0xa7, 0x6a,
-	0x37, 0x24, 0xfd, 0xb0, 0x9e, 0x5f, 0xae, 0x46, 0xff, 0xcf, 0x06, 0x98, 0x13, 0x71, 0x46, 0x7c,
-	0x38, 0x78, 0x56, 0xb0, 0x90, 0x33, 0xf5, 0x70, 0x6d, 0xbe, 0x0f, 0xc7, 0x9b, 0xae, 0x5b, 0x23,
-	0xdf, 0x41, 0xa7, 0x9a, 0x5f, 0x92, 0xad, 0x8d, 0x3f, 0xde, 0xf2, 0xdd, 0x1a, 0xf9, 0x19, 0x3a,
-	0xe7, 0x2c, 0x61, 0x0f, 0x97, 0x1c, 0xf9, 0xf2, 0x55, 0xf5, 0x97, 0xaf, 0xaa, 0x3f, 0x14, 0xaf,
-	0xaa, 0x5b, 0x23, 0xa7, 0xd0, 0xba, 0x60, 0xfc, 0x7f, 0x8e, 0xe6, 0x01, 0xc8, 0xd1, 0xf0, 0x1d,
-	0xab, 0x7e, 0xf5, 0xc7, 0x55, 0xc7, 0xad, 0x91, 0x27, 0xd0, 0xb8, 0x60, 0x7c, 0x6f, 0xda, 0x8f,
-	0xd0, 0x96, 0x83, 0xcb, 0x67, 0xe5, 0xa0, 0x12, 0xdd, 0x35, 0xf4, 0x4f, 0x70, 0xa4, 0xba, 0x2b,
-	0x80, 0x83, 0x85, 0x70, 0x2e, 0xa3, 0xcd, 0xcb, 0xee, 0x13, 0x75, 0x0a, 0x1d, 0x55, 0x38, 0x58,
-	0x8c, 0xf6, 0x0d, 0xd7, 0x83, 0x6e, 0xb0, 0x71, 0xcb, 0xbe, 0xee, 0x3f, 0x80, 0xbd, 0xe2, 0xb2,
-	0x54, 0x17, 0xec, 0x17, 0xaf, 0x07, 0x9d, 0x60, 0x59, 0x15, 0x88, 0x7f, 0xd1, 0x3e, 0x15, 0x7a,
-	0x70, 0x78, 0x96, 0x24, 0xd9, 0xad, 0xd2, 0x41, 0xd4, 0x94, 0x3b, 0x81, 0x7c, 0x0b, 0x24, 0x60,
-	0x7c, 0x30, 0xe7, 0x3c, 0x4b, 0x27, 0x59, 0x19, 0xf3, 0x38, 0x4b, 0x77, 0x57, 0x7c, 0x03, 0x8f,
-	0x5e, 0x85, 0x49, 0x1c, 0x89, 0x2d, 0x2c, 0xf6, 0xab, 0xed, 0x01, 0x8c, 0xd8, 0xef, 0xfc, 0x5c,
-	0xfe, 0x79, 0x76, 0x73, 0x7a, 0xf8, 0x32, 0x8f, 0xd4, 0xe4, 0x97, 0xf2, 0xb7, 0xb2, 0xb3, 0xe0,
-	0x17, 0x78, 0x4c, 0xd9, 0x2c, 0x7b, 0xa7, 0x34, 0x78, 0x5e, 0x64, 0x33, 0x1c, 0x67, 0x8b, 0xa4,
-	0x07, 0x77, 0xe5, 0xc6, 0xc2, 0x93, 0xef, 0xff, 0x0d, 0x00, 0x00, 0xff, 0xff, 0xbb, 0xd6, 0x92,
-	0x4f, 0x76, 0x08, 0x00, 0x00,
+	// 897 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x55, 0xef, 0x8e, 0xdb, 0x44,
+	0x10, 0x8f, 0xe3, 0x3f, 0x49, 0x26, 0x97, 0xd4, 0xb7, 0x2d, 0x87, 0x39, 0x24, 0x38, 0x2c, 0x5a,
+	0x02, 0x15, 0x09, 0x18, 0x10, 0x82, 0x2f, 0xe8, 0xd2, 0x4b, 0xaf, 0x27, 0x9d, 0x92, 0x68, 0x93,
+	0x16, 0x89, 0x2f, 0x27, 0xdf, 0x79, 0x7b, 0xb5, 0xea, 0xd8, 0x96, 0xbd, 0xa9, 0xc8, 0x03, 0xf0,
+	0x5e, 0x3c, 0x02, 0x48, 0x3c, 0x10, 0xda, 0xd9, 0x8d, 0xe3, 0xe4, 0x7a, 0x0e, 0x5f, 0xf8, 0x36,
+	0xb3, 0xf3, 0x9b, 0xdd, 0xf9, 0xfd, 0x66, 0x3c, 0x86, 0x0f, 0xd2, 0x2c, 0xe1, 0xc9, 0xf5, 0xf2,
+	0x75, 0x3e, 0x48, 0x93, 0xb7, 0x2c, 0xeb, 0xa3, 0x4f, 0x4c, 0x74, 0x8e, 0x3f, 0xbe, 0x4d, 0x92,
+	0xdb, 0x88, 0x0d, 0xd6, 0xa0, 0x01, 0x5b, 0xa4, 0x7c, 0x25, 0x31, 0xee, 0x1f, 0x1a, 0x58, 0xd3,
+	0xc8, 0x5f, 0xb1, 0x8c, 0x74, 0xa1, 0x1e, 0x06, 0x8e, 0x76, 0xa2, 0xf5, 0x74, 0x5a, 0x0f, 0x03,
+	0x42, 0xc0, 0x88, 0xfd, 0x05, 0x73, 0xea, 0x27, 0x5a, 0xaf, 0x45, 0xd1, 0x26, 0x8f, 0xc0, 0xbc,
+	0x79, 0x13, 0xa6, 0xb9, 0xa3, 0x23, 0x4c, 0x3a, 0x02, 0x99, 0x47, 0x09, 0x77, 0x0c, 0x3c, 0x44,
+	0x9b, 0x7c, 0x08, 0x8d, 0x30, 0xbe, 0x7a, 0xe3, 0xc7, 0x81, 0x63, 0x9e, 0x68, 0xbd, 0x26, 0xb5,
+	0xc2, 0xf8, 0x85, 0x1f, 0x07, 0x78, 0x85, 0x9f, 0x05, 0xb9, 0x63, 0xe1, 0xbd, 0xd2, 0x71, 0x3d,
+	0x68, 0xc8, 0x32, 0x72, 0xf2, 0x05, 0x34, 0x52, 0x69, 0x3a, 0xda, 0x89, 0xde, 0x6b, 0x7b, 0x9d,
+	0xbe, 0x64, 0x25, 0x01, 0x74, 0x1d, 0x75, 0xff, 0xd4, 0xc0, 0x38, 0x17, 0x55, 0xf5, 0xca, 0x19,
+	0x5a, 0xaf, 0xed, 0x75, 0xb7, 0x32, 0xf2, 0x22, 0xe5, 0xbd, 0x9c, 0x24, 0x6f, 0xbd, 0xe0, 0x7d,
+	0x04, 0x56, 0xc0, 0xfc, 0x88, 0x65, 0x8a, 0x8f, 0xf2, 0x88, 0x0d, 0xfa, 0x22, 0x8c, 0x91, 0x8d,
+	0x4e, 0x85, 0x49, 0x1e, 0x83, 0x95, 0x25, 0xcb, 0x58, 0x71, 0xd9, 0x14, 0x4a, 0xf1, 0x90, 0xaa,
+	0x20, 0xf9, 0x08, 0x9a, 0x61, 0x7c, 0x85, 0x8e, 0xd3, 0x40, 0x2d, 0x1a, 0x61, 0x8c, 0x18, 0xf7,
+	0x2b, 0x30, 0x05, 0x83, 0x9c, 0x7c, 0x06, 0xe6, 0xad, 0x30, 0x14, 0xe5, 0xb6, 0xba, 0x49, 0x04,
+	0xa9, 0x8c, 0xb8, 0x7f, 0xd7, 0xc1, 0xc4, 0xac, 0x3b, 0x9d, 0x7a, 0x0a, 0x56, 0xce, 0x7d, 0xbe,
+	0xcc, 0x91, 0x57, 0xd7, 0x7b, 0x58, 0xae, 0xa3, 0x3f, 0xc3, 0x10, 0x55, 0x90, 0xb2, 0x58, 0xfa,
+	0x5e, 0xb1, 0x02, 0x76, 0xf3, 0x16, 0x65, 0x68, 0x51, 0xb4, 0xc5, 0xd9, 0xeb, 0x28, 0x49, 0x51,
+	0x85, 0x16, 0x45, 0x5b, 0x9c, 0xf1, 0x65, 0x16, 0xab, 0x86, 0xa2, 0x2d, 0xba, 0x9c, 0x85, 0xef,
+	0x58, 0x86, 0x84, 0x5b, 0x54, 0x3a, 0xe4, 0x53, 0x30, 0xae, 0x19, 0xcf, 0x9d, 0x26, 0x3e, 0xbc,
+	0x26, 0x39, 0x64, 0x3c, 0xa7, 0x18, 0x10, 0x57, 0x09, 0xb2, 0x4e, 0x4b, 0x4e, 0x92, 0xb0, 0xdd,
+	0xdf, 0xc0, 0x92, 0x14, 0xc8, 0x03, 0x68, 0x8f, 0x27, 0xf3, 0xab, 0xd9, 0xfc, 0x94, 0xce, 0x47,
+	0x67, 0x76, 0x8d, 0x1c, 0x40, 0x73, 0x4a, 0x47, 0x57, 0xcf, 0x2f, 0x27, 0x53, 0x5b, 0x23, 0x4d,
+	0x30, 0xd0, 0xaa, 0x93, 0x16, 0x98, 0xf4, 0xe2, 0xd5, 0x88, 0xda, 0xba, 0x38, 0x9c, 0xbf, 0xa4,
+	0x63, 0xdb, 0x10, 0xd6, 0xec, 0xc5, 0xe4, 0x57, 0xdb, 0x14, 0xd6, 0x44, 0x44, 0x2d, 0xb7, 0x0f,
+	0x96, 0x6c, 0x16, 0xf9, 0xbc, 0xe8, 0xa5, 0xec, 0xc0, 0x41, 0x59, 0xc3, 0x75, 0x2b, 0xdd, 0xbf,
+	0xea, 0xa0, 0x0f, 0x19, 0xbf, 0xd3, 0x81, 0x2f, 0x77, 0x3a, 0x70, 0xb8, 0xa1, 0xb6, 0xab, 0xbf,
+	0x50, 0x06, 0x47, 0x41, 0x7d, 0x42, 0xe8, 0x14, 0xc4, 0x8d, 0x0d, 0x71, 0x31, 0x88, 0xb2, 0x15,
+	0x6a, 0xe6, 0x94, 0xb7, 0xf9, 0x08, 0xad, 0xf2, 0x47, 0xf8, 0x04, 0x0c, 0xbe, 0x4a, 0x19, 0x0a,
+	0xde, 0xf5, 0x48, 0xa9, 0x80, 0x21, 0xe3, 0xf3, 0x55, 0xca, 0x28, 0xc6, 0xff, 0x57, 0x39, 0x3d,
+	0x68, 0xa8, 0xc7, 0xc4, 0xe1, 0x78, 0x32, 0x1e, 0xd9, 0x35, 0xbc, 0x67, 0x72, 0x79, 0x26, 0x6f,
+	0x7c, 0x76, 0x7a, 0x79, 0xa9, 0x6e, 0x3c, 0xbd, 0x98, 0x8d, 0x6c, 0xdd, 0x7d, 0x02, 0x86, 0x18,
+	0x00, 0xf2, 0x89, 0x9a, 0x0d, 0x29, 0x3f, 0x6c, 0xea, 0x97, 0xa3, 0xe1, 0xfd, 0xd3, 0x04, 0x73,
+	0x2a, 0xce, 0x48, 0x1f, 0x0e, 0x9e, 0x65, 0xcc, 0xe7, 0x4c, 0x2d, 0xae, 0xed, 0xfd, 0x70, 0xbc,
+	0xed, 0xba, 0x35, 0xf2, 0x2d, 0x74, 0xca, 0xf8, 0x9c, 0xec, 0x4c, 0xfc, 0xf1, 0x8e, 0xef, 0xd6,
+	0xc8, 0x4f, 0xd0, 0x39, 0x63, 0x11, 0xbb, 0x3f, 0xe5, 0xa8, 0x2f, 0xb7, 0x6a, 0x7f, 0xbd, 0x55,
+	0xfb, 0x23, 0xb1, 0x55, 0xdd, 0x1a, 0x79, 0x0a, 0xad, 0x73, 0xc6, 0xff, 0x63, 0x69, 0xdf, 0x83,
+	0x5d, 0x80, 0xf3, 0xe1, 0x6a, 0x8c, 0xfb, 0x68, 0x6f, 0x75, 0x03, 0xe8, 0xcc, 0xd6, 0x59, 0x33,
+	0xb1, 0x6c, 0xf7, 0x3d, 0xd3, 0x03, 0x90, 0x0a, 0xe0, 0xba, 0x2c, 0x2f, 0x97, 0xe3, 0xb2, 0x83,
+	0xd5, 0x77, 0xce, 0x19, 0x17, 0x8e, 0xaa, 0xa6, 0x0a, 0xfc, 0x18, 0x1a, 0x0a, 0x5c, 0x09, 0xfb,
+	0x01, 0xda, 0x52, 0x4c, 0xb9, 0xea, 0x0e, 0x4a, 0xd1, 0x2a, 0x21, 0x07, 0x70, 0x78, 0x1a, 0x45,
+	0xc9, 0x8d, 0x2a, 0x5b, 0x10, 0xcd, 0x2b, 0xdf, 0xf9, 0x06, 0xc8, 0x8c, 0xf1, 0xe1, 0x92, 0xf3,
+	0x24, 0x9e, 0x26, 0x79, 0xc8, 0xc3, 0x24, 0xae, 0xce, 0xf8, 0x1a, 0x1e, 0xbc, 0xf2, 0xa3, 0x30,
+	0x10, 0xb3, 0x91, 0xed, 0x17, 0xa7, 0x07, 0x30, 0x66, 0xbf, 0xf3, 0x33, 0xf9, 0x3f, 0xa8, 0x42,
+	0x0e, 0xe0, 0xf0, 0x65, 0x1a, 0xa8, 0xca, 0x2f, 0xe4, 0xb2, 0xaf, 0x4c, 0xf8, 0x11, 0x8e, 0x94,
+	0x94, 0xc5, 0x30, 0x60, 0xea, 0x4e, 0xd6, 0xfb, 0x66, 0xa1, 0x3b, 0xdb, 0x4a, 0xdc, 0x97, 0xf0,
+	0x0b, 0x3c, 0xa2, 0x6c, 0x91, 0xbc, 0x53, 0xf8, 0xe7, 0x59, 0xb2, 0x40, 0xe2, 0x3b, 0x33, 0x74,
+	0x7f, 0x5f, 0x3c, 0x78, 0x28, 0x87, 0x09, 0x59, 0x15, 0xf9, 0x5b, 0xcf, 0x6e, 0x6d, 0x4f, 0x54,
+	0xae, 0x79, 0xce, 0xb8, 0x94, 0x61, 0x2b, 0x76, 0x07, 0xf9, 0x33, 0x38, 0x6b, 0x64, 0xa1, 0x04,
+	0x7a, 0x17, 0xbb, 0x99, 0x77, 0xa9, 0x79, 0x40, 0x4a, 0x95, 0xad, 0xf5, 0xa8, 0x7c, 0xef, 0xda,
+	0x42, 0x7e, 0xdf, 0xfd, 0x1b, 0x00, 0x00, 0xff, 0xff, 0xdf, 0x14, 0x35, 0x59, 0x44, 0x09, 0x00,
+	0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -738,26 +741,33 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type PokerClient interface {
+	// Player RPCs
 	CreatePlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Player, error)
 	CreatePlayers(ctx context.Context, in *Players, opts ...grpc.CallOption) (*Players, error)
 	DeletePlayers(ctx context.Context, in *Players, opts ...grpc.CallOption) (*empty.Empty, error)
 	GetPlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Player, error)
-	CreateGame(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
-	GetGame(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
-	DeleteGames(ctx context.Context, in *Games, opts ...grpc.CallOption) (*empty.Empty, error)
-	GetGamePlayersByGameId(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Players, error)
-	GetGameByName(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
-	SetGamePlayers(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Players, error)
 	GetPlayersByName(ctx context.Context, in *Players, opts ...grpc.CallOption) (*Players, error)
 	SetPlayerSlot(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Player, error)
+	// Game RPCs
+	CreateGame(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
+	GetGameByName(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
+	GetGame(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
+	DeleteGames(ctx context.Context, in *Games, opts ...grpc.CallOption) (*empty.Empty, error)
 	AllocateGameSlots(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
 	SetButtonPositions(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
 	ValidatePreGame(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
 	NextDealer(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
 	UpdateGameInRound(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error)
-	//    rpc CreateRoundFromGame(Game) returns (Round){}
-	//    rpc GetRoundsFromGame(Game) returns (Round){}
+	// GamePlayers (join table)
+	GetGamePlayersByGameId(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Players, error)
+	SetGamePlayers(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Players, error)
 	RemovePlayerFromGame(ctx context.Context, in *Player, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Round RPCs
+	CreateRoundFromGame(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Round, error)
+	GetRound(ctx context.Context, in *Round, opts ...grpc.CallOption) (*Round, error)
+	// RoundPlayers RPCs (join table)
+	GetRoundPlayersByRoundId(ctx context.Context, in *Round, opts ...grpc.CallOption) (*Players, error)
+	CreateRoundPlayers(ctx context.Context, in *Round, opts ...grpc.CallOption) (*Round, error)
 }
 
 type pokerClient struct {
@@ -804,9 +814,36 @@ func (c *pokerClient) GetPlayer(ctx context.Context, in *Player, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *pokerClient) GetPlayersByName(ctx context.Context, in *Players, opts ...grpc.CallOption) (*Players, error) {
+	out := new(Players)
+	err := c.cc.Invoke(ctx, "/poker.Poker/GetPlayersByName", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pokerClient) SetPlayerSlot(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Player, error) {
+	out := new(Player)
+	err := c.cc.Invoke(ctx, "/poker.Poker/SetPlayerSlot", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *pokerClient) CreateGame(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error) {
 	out := new(Game)
 	err := c.cc.Invoke(ctx, "/poker.Poker/CreateGame", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pokerClient) GetGameByName(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error) {
+	out := new(Game)
+	err := c.cc.Invoke(ctx, "/poker.Poker/GetGameByName", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -825,51 +862,6 @@ func (c *pokerClient) GetGame(ctx context.Context, in *Game, opts ...grpc.CallOp
 func (c *pokerClient) DeleteGames(ctx context.Context, in *Games, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/poker.Poker/DeleteGames", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pokerClient) GetGamePlayersByGameId(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Players, error) {
-	out := new(Players)
-	err := c.cc.Invoke(ctx, "/poker.Poker/GetGamePlayersByGameId", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pokerClient) GetGameByName(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Game, error) {
-	out := new(Game)
-	err := c.cc.Invoke(ctx, "/poker.Poker/GetGameByName", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pokerClient) SetGamePlayers(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Players, error) {
-	out := new(Players)
-	err := c.cc.Invoke(ctx, "/poker.Poker/SetGamePlayers", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pokerClient) GetPlayersByName(ctx context.Context, in *Players, opts ...grpc.CallOption) (*Players, error) {
-	out := new(Players)
-	err := c.cc.Invoke(ctx, "/poker.Poker/GetPlayersByName", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pokerClient) SetPlayerSlot(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Player, error) {
-	out := new(Player)
-	err := c.cc.Invoke(ctx, "/poker.Poker/SetPlayerSlot", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -921,6 +913,24 @@ func (c *pokerClient) UpdateGameInRound(ctx context.Context, in *Game, opts ...g
 	return out, nil
 }
 
+func (c *pokerClient) GetGamePlayersByGameId(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Players, error) {
+	out := new(Players)
+	err := c.cc.Invoke(ctx, "/poker.Poker/GetGamePlayersByGameId", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pokerClient) SetGamePlayers(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Players, error) {
+	out := new(Players)
+	err := c.cc.Invoke(ctx, "/poker.Poker/SetGamePlayers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *pokerClient) RemovePlayerFromGame(ctx context.Context, in *Player, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/poker.Poker/RemovePlayerFromGame", in, out, opts...)
@@ -930,28 +940,71 @@ func (c *pokerClient) RemovePlayerFromGame(ctx context.Context, in *Player, opts
 	return out, nil
 }
 
+func (c *pokerClient) CreateRoundFromGame(ctx context.Context, in *Game, opts ...grpc.CallOption) (*Round, error) {
+	out := new(Round)
+	err := c.cc.Invoke(ctx, "/poker.Poker/CreateRoundFromGame", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pokerClient) GetRound(ctx context.Context, in *Round, opts ...grpc.CallOption) (*Round, error) {
+	out := new(Round)
+	err := c.cc.Invoke(ctx, "/poker.Poker/GetRound", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pokerClient) GetRoundPlayersByRoundId(ctx context.Context, in *Round, opts ...grpc.CallOption) (*Players, error) {
+	out := new(Players)
+	err := c.cc.Invoke(ctx, "/poker.Poker/GetRoundPlayersByRoundId", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pokerClient) CreateRoundPlayers(ctx context.Context, in *Round, opts ...grpc.CallOption) (*Round, error) {
+	out := new(Round)
+	err := c.cc.Invoke(ctx, "/poker.Poker/CreateRoundPlayers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PokerServer is the server API for Poker service.
 type PokerServer interface {
+	// Player RPCs
 	CreatePlayer(context.Context, *Player) (*Player, error)
 	CreatePlayers(context.Context, *Players) (*Players, error)
 	DeletePlayers(context.Context, *Players) (*empty.Empty, error)
 	GetPlayer(context.Context, *Player) (*Player, error)
-	CreateGame(context.Context, *Game) (*Game, error)
-	GetGame(context.Context, *Game) (*Game, error)
-	DeleteGames(context.Context, *Games) (*empty.Empty, error)
-	GetGamePlayersByGameId(context.Context, *Game) (*Players, error)
-	GetGameByName(context.Context, *Game) (*Game, error)
-	SetGamePlayers(context.Context, *Game) (*Players, error)
 	GetPlayersByName(context.Context, *Players) (*Players, error)
 	SetPlayerSlot(context.Context, *Player) (*Player, error)
+	// Game RPCs
+	CreateGame(context.Context, *Game) (*Game, error)
+	GetGameByName(context.Context, *Game) (*Game, error)
+	GetGame(context.Context, *Game) (*Game, error)
+	DeleteGames(context.Context, *Games) (*empty.Empty, error)
 	AllocateGameSlots(context.Context, *Game) (*Game, error)
 	SetButtonPositions(context.Context, *Game) (*Game, error)
 	ValidatePreGame(context.Context, *Game) (*Game, error)
 	NextDealer(context.Context, *Game) (*Game, error)
 	UpdateGameInRound(context.Context, *Game) (*Game, error)
-	//    rpc CreateRoundFromGame(Game) returns (Round){}
-	//    rpc GetRoundsFromGame(Game) returns (Round){}
+	// GamePlayers (join table)
+	GetGamePlayersByGameId(context.Context, *Game) (*Players, error)
+	SetGamePlayers(context.Context, *Game) (*Players, error)
 	RemovePlayerFromGame(context.Context, *Player) (*empty.Empty, error)
+	// Round RPCs
+	CreateRoundFromGame(context.Context, *Game) (*Round, error)
+	GetRound(context.Context, *Round) (*Round, error)
+	// RoundPlayers RPCs (join table)
+	GetRoundPlayersByRoundId(context.Context, *Round) (*Players, error)
+	CreateRoundPlayers(context.Context, *Round) (*Round, error)
 }
 
 // UnimplementedPokerServer can be embedded to have forward compatible implementations.
@@ -970,29 +1023,23 @@ func (*UnimplementedPokerServer) DeletePlayers(ctx context.Context, req *Players
 func (*UnimplementedPokerServer) GetPlayer(ctx context.Context, req *Player) (*Player, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPlayer not implemented")
 }
+func (*UnimplementedPokerServer) GetPlayersByName(ctx context.Context, req *Players) (*Players, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPlayersByName not implemented")
+}
+func (*UnimplementedPokerServer) SetPlayerSlot(ctx context.Context, req *Player) (*Player, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetPlayerSlot not implemented")
+}
 func (*UnimplementedPokerServer) CreateGame(ctx context.Context, req *Game) (*Game, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateGame not implemented")
+}
+func (*UnimplementedPokerServer) GetGameByName(ctx context.Context, req *Game) (*Game, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGameByName not implemented")
 }
 func (*UnimplementedPokerServer) GetGame(ctx context.Context, req *Game) (*Game, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGame not implemented")
 }
 func (*UnimplementedPokerServer) DeleteGames(ctx context.Context, req *Games) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteGames not implemented")
-}
-func (*UnimplementedPokerServer) GetGamePlayersByGameId(ctx context.Context, req *Game) (*Players, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetGamePlayersByGameId not implemented")
-}
-func (*UnimplementedPokerServer) GetGameByName(ctx context.Context, req *Game) (*Game, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetGameByName not implemented")
-}
-func (*UnimplementedPokerServer) SetGamePlayers(ctx context.Context, req *Game) (*Players, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetGamePlayers not implemented")
-}
-func (*UnimplementedPokerServer) GetPlayersByName(ctx context.Context, req *Players) (*Players, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPlayersByName not implemented")
-}
-func (*UnimplementedPokerServer) SetPlayerSlot(ctx context.Context, req *Player) (*Player, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetPlayerSlot not implemented")
 }
 func (*UnimplementedPokerServer) AllocateGameSlots(ctx context.Context, req *Game) (*Game, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AllocateGameSlots not implemented")
@@ -1009,8 +1056,26 @@ func (*UnimplementedPokerServer) NextDealer(ctx context.Context, req *Game) (*Ga
 func (*UnimplementedPokerServer) UpdateGameInRound(ctx context.Context, req *Game) (*Game, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateGameInRound not implemented")
 }
+func (*UnimplementedPokerServer) GetGamePlayersByGameId(ctx context.Context, req *Game) (*Players, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGamePlayersByGameId not implemented")
+}
+func (*UnimplementedPokerServer) SetGamePlayers(ctx context.Context, req *Game) (*Players, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetGamePlayers not implemented")
+}
 func (*UnimplementedPokerServer) RemovePlayerFromGame(ctx context.Context, req *Player) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemovePlayerFromGame not implemented")
+}
+func (*UnimplementedPokerServer) CreateRoundFromGame(ctx context.Context, req *Game) (*Round, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRoundFromGame not implemented")
+}
+func (*UnimplementedPokerServer) GetRound(ctx context.Context, req *Round) (*Round, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRound not implemented")
+}
+func (*UnimplementedPokerServer) GetRoundPlayersByRoundId(ctx context.Context, req *Round) (*Players, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoundPlayersByRoundId not implemented")
+}
+func (*UnimplementedPokerServer) CreateRoundPlayers(ctx context.Context, req *Round) (*Round, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRoundPlayers not implemented")
 }
 
 func RegisterPokerServer(s *grpc.Server, srv PokerServer) {
@@ -1089,6 +1154,42 @@ func _Poker_GetPlayer_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Poker_GetPlayersByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Players)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).GetPlayersByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/GetPlayersByName",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).GetPlayersByName(ctx, req.(*Players))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Poker_SetPlayerSlot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Player)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).SetPlayerSlot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/SetPlayerSlot",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).SetPlayerSlot(ctx, req.(*Player))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Poker_CreateGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Game)
 	if err := dec(in); err != nil {
@@ -1103,6 +1204,24 @@ func _Poker_CreateGame_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PokerServer).CreateGame(ctx, req.(*Game))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Poker_GetGameByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Game)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).GetGameByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/GetGameByName",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).GetGameByName(ctx, req.(*Game))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1139,96 +1258,6 @@ func _Poker_DeleteGames_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PokerServer).DeleteGames(ctx, req.(*Games))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Poker_GetGamePlayersByGameId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Game)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PokerServer).GetGamePlayersByGameId(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/poker.Poker/GetGamePlayersByGameId",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PokerServer).GetGamePlayersByGameId(ctx, req.(*Game))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Poker_GetGameByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Game)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PokerServer).GetGameByName(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/poker.Poker/GetGameByName",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PokerServer).GetGameByName(ctx, req.(*Game))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Poker_SetGamePlayers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Game)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PokerServer).SetGamePlayers(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/poker.Poker/SetGamePlayers",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PokerServer).SetGamePlayers(ctx, req.(*Game))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Poker_GetPlayersByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Players)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PokerServer).GetPlayersByName(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/poker.Poker/GetPlayersByName",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PokerServer).GetPlayersByName(ctx, req.(*Players))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Poker_SetPlayerSlot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Player)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PokerServer).SetPlayerSlot(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/poker.Poker/SetPlayerSlot",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PokerServer).SetPlayerSlot(ctx, req.(*Player))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1323,6 +1352,42 @@ func _Poker_UpdateGameInRound_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Poker_GetGamePlayersByGameId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Game)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).GetGamePlayersByGameId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/GetGamePlayersByGameId",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).GetGamePlayersByGameId(ctx, req.(*Game))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Poker_SetGamePlayers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Game)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).SetGamePlayers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/SetGamePlayers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).SetGamePlayers(ctx, req.(*Game))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Poker_RemovePlayerFromGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Player)
 	if err := dec(in); err != nil {
@@ -1337,6 +1402,78 @@ func _Poker_RemovePlayerFromGame_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PokerServer).RemovePlayerFromGame(ctx, req.(*Player))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Poker_CreateRoundFromGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Game)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).CreateRoundFromGame(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/CreateRoundFromGame",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).CreateRoundFromGame(ctx, req.(*Game))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Poker_GetRound_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Round)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).GetRound(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/GetRound",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).GetRound(ctx, req.(*Round))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Poker_GetRoundPlayersByRoundId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Round)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).GetRoundPlayersByRoundId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/GetRoundPlayersByRoundId",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).GetRoundPlayersByRoundId(ctx, req.(*Round))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Poker_CreateRoundPlayers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Round)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PokerServer).CreateRoundPlayers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/poker.Poker/CreateRoundPlayers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PokerServer).CreateRoundPlayers(ctx, req.(*Round))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1362,8 +1499,20 @@ var _Poker_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Poker_GetPlayer_Handler,
 		},
 		{
+			MethodName: "GetPlayersByName",
+			Handler:    _Poker_GetPlayersByName_Handler,
+		},
+		{
+			MethodName: "SetPlayerSlot",
+			Handler:    _Poker_SetPlayerSlot_Handler,
+		},
+		{
 			MethodName: "CreateGame",
 			Handler:    _Poker_CreateGame_Handler,
+		},
+		{
+			MethodName: "GetGameByName",
+			Handler:    _Poker_GetGameByName_Handler,
 		},
 		{
 			MethodName: "GetGame",
@@ -1372,26 +1521,6 @@ var _Poker_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteGames",
 			Handler:    _Poker_DeleteGames_Handler,
-		},
-		{
-			MethodName: "GetGamePlayersByGameId",
-			Handler:    _Poker_GetGamePlayersByGameId_Handler,
-		},
-		{
-			MethodName: "GetGameByName",
-			Handler:    _Poker_GetGameByName_Handler,
-		},
-		{
-			MethodName: "SetGamePlayers",
-			Handler:    _Poker_SetGamePlayers_Handler,
-		},
-		{
-			MethodName: "GetPlayersByName",
-			Handler:    _Poker_GetPlayersByName_Handler,
-		},
-		{
-			MethodName: "SetPlayerSlot",
-			Handler:    _Poker_SetPlayerSlot_Handler,
 		},
 		{
 			MethodName: "AllocateGameSlots",
@@ -1414,8 +1543,32 @@ var _Poker_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Poker_UpdateGameInRound_Handler,
 		},
 		{
+			MethodName: "GetGamePlayersByGameId",
+			Handler:    _Poker_GetGamePlayersByGameId_Handler,
+		},
+		{
+			MethodName: "SetGamePlayers",
+			Handler:    _Poker_SetGamePlayers_Handler,
+		},
+		{
 			MethodName: "RemovePlayerFromGame",
 			Handler:    _Poker_RemovePlayerFromGame_Handler,
+		},
+		{
+			MethodName: "CreateRoundFromGame",
+			Handler:    _Poker_CreateRoundFromGame_Handler,
+		},
+		{
+			MethodName: "GetRound",
+			Handler:    _Poker_GetRound_Handler,
+		},
+		{
+			MethodName: "GetRoundPlayersByRoundId",
+			Handler:    _Poker_GetRoundPlayersByRoundId_Handler,
+		},
+		{
+			MethodName: "CreateRoundPlayers",
+			Handler:    _Poker_CreateRoundPlayers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

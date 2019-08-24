@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/jinzhu/gorm"
+	"imran/poker/deck"
 	pb "imran/poker/protobufs"
 )
 
@@ -31,4 +32,15 @@ func (g *Game) ProtoMarshal() *pb.Game {
 		Min:     g.Min,
 		InRound: g.InRound,
 	}
+}
+
+func (g *Game) MarshalRound() *pb.Round{
+	d := deck.New()
+
+	return &pb.Round{
+		// Id is nil as it will be reate
+		Deck: d.String(),
+		Game: int64(g.ID),
+	}
+
 }

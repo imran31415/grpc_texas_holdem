@@ -5,26 +5,43 @@ package poker;
 import "google/protobuf/empty.proto";
 
 service Poker {
+
+    // Player RPCs
     rpc CreatePlayer(Player) returns (Player){}
     rpc CreatePlayers(Players) returns (Players){}
     rpc DeletePlayers(Players) returns (google.protobuf.Empty){}
     rpc GetPlayer(Player) returns (Player){}
-    rpc CreateGame(Game) returns (Game){}
-    rpc GetGame(Game) returns (Game){}
-    rpc DeleteGames(Games) returns (google.protobuf.Empty){}
-    rpc GetGamePlayersByGameId(Game) returns (Players){}
-    rpc GetGameByName(Game) returns (Game){}
-    rpc SetGamePlayers(Game) returns (Players){}
     rpc GetPlayersByName(Players) returns(Players){}
     rpc SetPlayerSlot(Player) returns (Player){}
+
+    // Game RPCs
+    rpc CreateGame(Game) returns (Game){}
+    rpc GetGameByName(Game) returns (Game){}
+    rpc GetGame(Game) returns (Game){}
+    rpc DeleteGames(Games) returns (google.protobuf.Empty){}
     rpc AllocateGameSlots(Game) returns (Game){}
     rpc SetButtonPositions(Game) returns (Game){}
     rpc ValidatePreGame(Game) returns (Game){}
     rpc NextDealer(Game) returns (Game){}
     rpc UpdateGameInRound(Game) returns (Game){}
-//    rpc CreateRoundFromGame(Game) returns (Round){}
-//    rpc GetRoundsFromGame(Game) returns (Round){}
+
+
+    // GamePlayers (join table)
+    rpc GetGamePlayersByGameId(Game) returns (Players){}
+    rpc SetGamePlayers(Game) returns (Players){}
     rpc RemovePlayerFromGame(Player) returns(google.protobuf.Empty) {}
+
+
+    // Round RPCs
+    rpc CreateRoundFromGame(Game) returns (Round){}
+    rpc GetRound(Round) returns (Round){}
+
+    // RoundPlayers RPCs (join table)
+    rpc GetRoundPlayersByRoundId(Round) returns (Players){}
+    rpc CreateRoundPlayers(Round) returns (Round){}
+
+//  rpc GetRoundsFromGame(Game) returns (Rounds){}
+
 }
 
 

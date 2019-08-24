@@ -185,6 +185,37 @@ func (s *Server) GetGame(ctx context.Context, in *pb.Game) (*pb.Game, error) {
 	return game, nil
 }
 
+
+
+func (s *Server) GetRound(ctx context.Context, in *pb.Round) (*pb.Round, error) {
+
+	r := &models.Round{}
+
+	if err := s.gormDb.Where("id = (?)", in.GetId()).Find(r).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
+		return nil, ErrGameDoesntExist
+	}
+
+	// Hydrate players
+	playersId, err := s.GetRoundPlayersByRoundId(ctx, &pb.Round{Id: int64(r.ID)})
+
+	if err != nil {
+		return nil, err
+	}
+
+	players, err := s.GetPlayers(ctx, playersId)
+	if err != nil {
+		return nil, err
+	}
+
+	round := r.ProtoMarshal()
+	round.Players = players
+
+	return round, nil
+}
+
+
 func (s *Server) DeleteGames(ctx context.Context, toDelete *pb.Games) (*empty.Empty, error) {
 
 	var ids = []int64{}
@@ -261,6 +292,7 @@ func (s *Server) GetGamePlayersByGameId(ctx context.Context, in *pb.Game) (*pb.P
 // SetGamePlayers Sets the game players.
 // This method is flexible so if there are existing players in the game
 // it will only add the difference (If the total number of players is less than 9 and greater than 1)
+// This is not an indepodent operation so existing players are considered and only the difference is added
 func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, error) {
 
 	// 1. Get existing players IDs in the game
@@ -308,7 +340,6 @@ func (s *Server) SetGamePlayers(ctx context.Context, g *pb.Game) (*pb.Players, e
 		return nil, err
 	}
 	return players, err
-
 }
 
 func (s *Server) SetPlayerSlot(ctx context.Context, p *pb.Player) (*pb.Player, error) {
@@ -468,7 +499,9 @@ func (s *Server) NextDealer(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 //  2. Slots are allocated to players incorrectly
 //  3. Button positions and bet is not set.
 func (s *Server) ValidatePreGame(ctx context.Context, g *pb.Game) (*pb.Game, error) {
-
+	if g.InRound{
+		return nil, ErrGameInRound
+	}
 	// mapping of user id to slot
 	slotMap := map[int64]int64{}
 
@@ -552,6 +585,31 @@ func (s *Server) RemovePlayerFromGame(ctx context.Context, player *pb.Player) (*
 	return &empty.Empty{}, nil
 }
 
+
+
+func (s *Server) GetRoundPlayersByRoundId(ctx context.Context, in *pb.Round) (*pb.Players, error) {
+	gp := []*models.RoundPlayers{}
+
+	if err := s.gormDb.Where("round = ?", in.GetId()).Find(&gp).Error; err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	} else if err != nil && err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	out := &pb.Players{}
+	for _, pId := range gp {
+		out.Players = append(out.Players, &pb.Player{
+			Id: int64(pId.Player),
+		})
+	}
+	// Get hydrated player instead of just their IDs
+	players, err := s.GetPlayers(ctx, out)
+	if err != nil {
+		return nil, err
+	}
+	return players, nil
+}
+
 func (s *Server) UpdateGameInRound(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	game, err := s.GetGame(ctx, g)
 	if err != nil {
@@ -576,8 +634,72 @@ func (s *Server) UpdateGameInRound(ctx context.Context, g *pb.Game) (*pb.Game, e
 		return nil, err
 	}
 	return out, nil
-
 }
+
+
+// CreateRoundFromGame does the following ops:
+// 1. validates the game is in a state where a new round could be created
+// 2. creates an initial model of the round from the game
+// 3. creates the round which generates a round ID
+// 4. adds the game players to the round to the join table RoundPlayers
+func (s *Server) CreateRoundFromGame(ctx context.Context, g *pb.Game) (*pb.Round, error){
+	game, err := s.GetGame(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	if game == nil {
+		return nil, ErrGameDoesntExist
+	}
+
+	game, err = s.ValidatePreGame(ctx, game)
+
+	if err != nil {
+		return nil, err
+	}
+
+	gModel := &models.Game{}
+	gModel.ProtoUnMarshal(game)
+	// HydratePlayers
+	r := gModel.MarshalRound()
+
+	if err := s.gormDb.Create(r).Error; err != nil {
+		return nil, err
+	}
+
+	r, err = s.GetRound(ctx, r)
+	r.Players = g.GetPlayers()
+
+	r, err = s.CreateRoundPlayers(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (s *Server) CreateRoundPlayers(ctx context.Context, r *pb.Round) (*pb.Round, error){
+
+	// Clear any existing players in the round
+	// Ignore record not found errors
+	// Ensures running CreateRoundPlayers is idempotent operations
+	if err := s.gormDb.Where("id = (?)", r.GetId()).Delete(&models.RoundPlayers{}).Error; err != gorm.ErrRecordNotFound || err != nil {
+		return nil, err
+	}
+
+	for _, shouldAdd := range r.GetPlayers().GetPlayers() {
+		toCreate := &models.RoundPlayers{Player: shouldAdd.GetId(), Game: r.GetGame(), Round:r.GetId()}
+		if err := s.gormDb.Create(toCreate).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	round, err := s.GetRound(ctx, r)
+	if err != nil{
+		return nil, err
+	}
+	return round, nil
+}
+
+
 
 func Run() {
 	lis, err := net.Listen("tcp", Port)
