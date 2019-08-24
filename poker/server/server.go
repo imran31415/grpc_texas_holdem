@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"imran/poker/deck"
 	"imran/poker/models"
 	"log"
 	"math/rand"
@@ -36,6 +37,9 @@ var (
 	ErrNoBetSet                = fmt.Errorf("no bet set for game")
 	ErrPlayerDoesntExist       = fmt.Errorf("player doesn't exist")
 	ErrGameInRound             = fmt.Errorf("can not perform operation when game is in round")
+	ErrRoundInRound            = fmt.Errorf("can not perform operation when round is in round")
+	ErrDeckNotFull             = fmt.Errorf("deck is not full")
+	ErrExistingCards           = fmt.Errorf("player already has cards")
 )
 
 type Server struct {
@@ -688,14 +692,16 @@ func (s *Server) CreateRoundFromGame(ctx context.Context, g *pb.Game) (*pb.Round
 		return nil, err
 	}
 
-	r, err = s.GetRound(ctx, r)
-	r.Players = g.GetPlayers()
+	fmt.Println("Marshaled round", r)
 
-	r, err = s.CreateRoundPlayers(ctx, r)
+	round, err := s.GetRound(ctx, r.ProtoMarshal())
+	round.Players = g.GetPlayers()
+
+	round, err = s.CreateRoundPlayers(ctx, round)
 	if err != nil {
 		return nil, err
 	}
-	return r, nil
+	return round, nil
 }
 
 func (s *Server) CreateRoundPlayers(ctx context.Context, r *pb.Round) (*pb.Round, error) {
@@ -703,7 +709,8 @@ func (s *Server) CreateRoundPlayers(ctx context.Context, r *pb.Round) (*pb.Round
 	// Clear any existing players in the round
 	// Ignore record not found errors
 	// Ensures running CreateRoundPlayers is idempotent operations
-	if err := s.gormDb.Where("id = (?)", r.GetId()).Delete(&models.RoundPlayers{}).Error; err != gorm.ErrRecordNotFound || err != nil {
+	if err := s.gormDb.Where("id = (?)", r.GetId()).Delete(&models.RoundPlayers{}).Error; err != gorm.ErrRecordNotFound && err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -719,6 +726,75 @@ func (s *Server) CreateRoundPlayers(ctx context.Context, r *pb.Round) (*pb.Round
 		return nil, err
 	}
 	return round, nil
+}
+
+// TODO write test
+func (s *Server) ValidatePreRound(ctx context.Context, r *pb.Round) (*pb.Round, error) {
+
+	round, err := s.GetRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	game, err := s.GetGame(ctx, &pb.Game{Id: r.Game})
+	if err != nil {
+		return nil, err
+	}
+
+	game, err = s.ValidatePreGame(ctx, game)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.InRound == true {
+		return nil, ErrRoundInRound
+	}
+
+	if len(r.GetPlayers().GetPlayers()) != len(game.GetPlayers().GetPlayers()) {
+		return nil, ErrInvalidPlayerCount
+	}
+
+	d := deck.Deck{}
+	d.Marshal(r.GetDeck())
+
+	if !d.IsFull() {
+		return nil, ErrDeckNotFull
+	}
+	return round, nil
+}
+
+func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error) {
+
+	round, err := s.ValidatePreRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	// TODO define how a round starts
+	// Deal cards, set on_bet
+
+	return round, nil
+}
+
+func (s *Server) DealCards(ctx context.Context, r *pb.Round) (*pb.Round, error) {
+	round, err := s.ValidatePreRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range round.GetPlayers().GetPlayers() {
+		if p.GetCards() != "" {
+			return nil, ErrExistingCards
+		}
+	}
+	d := &deck.Deck{}
+	d.Marshal(round.GetDeck())
+	if !d.IsFull() {
+		return nil, ErrDeckNotFull
+	}
+	// TODO DEAL
+	//burn := d.Deal
+	return nil, nil
+
 }
 
 func Run() {

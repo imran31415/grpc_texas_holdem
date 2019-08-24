@@ -40,6 +40,10 @@ service Poker {
     // RoundPlayers RPCs (join table)
     rpc GetRoundPlayersByRoundId(Round) returns (Players){}
     rpc CreateRoundPlayers(Round) returns (Round){}
+    rpc ValidatePreRound(Round) returns (Round){}
+    rpc StartRound(Round) returns (Round){}
+
+    // dealing/card
 
 //  rpc GetRoundsFromGame(Game) returns (Rounds){}
 
@@ -98,6 +102,7 @@ message Round {
     string river = 7;
     Bets bets = 8;
     int64 game = 9;
+    bool in_round = 10;
 }
 
 message Rounds {

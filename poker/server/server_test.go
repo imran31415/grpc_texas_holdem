@@ -1653,10 +1653,24 @@ func TestServer_CreateRoundFromGame(t *testing.T) {
 			require.NoError(t, err)
 			buttonSetGame, err := testClient.SetButtonPositions(ctx, allocatedGame)
 			require.NoError(t, err)
+			buttonSetGame.Min = 100
 			readyGame, err := testClient.SetMin(ctx, buttonSetGame)
 			require.NoError(t, err)
 
+			// sanity check the game is set with players correctly before creating round
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(readyGame.GetPlayers().GetPlayers()))
+
+			round, err := testClient.CreateRoundFromGame(ctx, readyGame)
+			require.NoError(t, err)
+			require.Equal(t, readyGame.GetId(), round.GetGame())
+
+			// num of players in round should equal teh game it was created from
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(round.GetPlayers().GetPlayers()))
+
+			roundPlayers, err := testClient.GetRoundPlayersByRoundId(ctx, round)
+			require.NoError(t, err)
+			// num of players in round should equal teh game it was created from
+			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(roundPlayers.GetPlayers()))
 
 		})
 	}

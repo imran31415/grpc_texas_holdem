@@ -75,6 +75,15 @@ func New() (deck Deck) {
 	return
 }
 
+func (d Deck) IsFull() bool {
+	// 104 is a full deck (2*52)
+	if len(d.String()) == 104 {
+		return true
+	}
+	return false
+
+}
+
 // Shuffle the deck
 func Shuffle(d Deck) Deck {
 	for i := 1; i < len(d); i++ {
@@ -91,10 +100,15 @@ func Shuffle(d Deck) Deck {
 }
 
 // Deal a specified amount of cards
-func DealCard(d Deck) (Card, Deck) {
+func dealCard(d Deck) (Card, Deck) {
 	c, d := d[len(d)-1], d[:len(d)-1]
 	return c, d
+}
 
+func (d *Deck) DealCard() Card {
+	c, deck := dealCard(*d)
+	d = &deck
+	return c
 }
 
 func EvaluateHand(cards []Card) uint32 {
