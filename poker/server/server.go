@@ -791,8 +791,22 @@ func (s *Server) DealCards(ctx context.Context, r *pb.Round) (*pb.Round, error) 
 	if !d.IsFull() {
 		return nil, ErrDeckNotFull
 	}
+
+	//burn one
+	_ = d.DealCard()
+	for _, p := range r.GetPlayers().GetPlayers(){
+		c1, c2 := d.DealCard(), d.DealCard()
+		p.Cards = c1.String()+c2.String()
+
+
+
+	}
+	//TODO UPDATE PLAYER RECORd
+
 	// TODO DEAL
 	//burn := d.Deal
+
+	r.Deck = d.String()
 	return nil, nil
 
 }
