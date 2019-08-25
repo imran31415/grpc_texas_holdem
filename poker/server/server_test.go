@@ -919,9 +919,6 @@ func TestServer_SetButtonPositions(t *testing.T) {
 				assert.Less(t, slot, int64(9))
 			}
 
-			// TODO: create method to set this
-			game.Min = int64(100)
-
 			// Now that players are seated, set dealer position
 			game, err = testClient.SetButtonPositions(ctx, game)
 			game.Min = 100
@@ -1576,28 +1573,31 @@ func TestServer_RemovePlayerFromGame(t *testing.T) {
 	}
 }
 
+// TestServer_CreateRoundFromGame creates a round from a game, creates a deck,
+// shuffles it and then sets the action position
 func TestServer_CreateRoundFromGame(t *testing.T) {
+	testMin := int64(1000)
 
 	var playersSetA = []*pb.Player{
 		{
 			Name:  getUniqueName(),
-			Chips: 1000,
+			Chips: testMin,
 		},
 		{
 			Name:  getUniqueName(),
-			Chips: 1000,
+			Chips: testMin,
 		},
 		{
 			Name:  getUniqueName(),
-			Chips: 1000,
+			Chips: testMin,
 		},
 		{
 			Name:  getUniqueName(),
-			Chips: 1000,
+			Chips: testMin,
 		},
 		{
 			Name:  getUniqueName(),
-			Chips: 1000,
+			Chips: testMin,
 		},
 	}
 
@@ -1672,26 +1672,39 @@ func TestServer_CreateRoundFromGame(t *testing.T) {
 			require.NoError(t, err)
 			// num of players in round should equal teh game it was created from
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(roundPlayers.GetPlayers()))
-			round, err = testClient.StartRound(ctx, round)
-			require.NoError(t, err)
+
 			round, err = testClient.ValidatePreRound(ctx, round)
 			require.NoError(t, err)
-			round, err = testClient.DealCards(ctx, round)
+
+			round, err = testClient.StartRound(ctx, round)
 			require.NoError(t, err)
 
 			for _, p := range round.GetPlayers().GetPlayers() {
-				fmt.Print(p.GetCards())
 				assert.NotEqual(t, "", p.GetCards())
+				fmt.Println("Chips", p.GetChips())
 			}
 
 			d := deck.Deck{}
 			d = d.Marshal(round.GetDeck())
 			// The number of cards left in the deck should = 52 - ((2 * N) + 1), where N is number of players and 1 is for burning the first card
 			require.Equal(t, 52-(len(tt.GameToCreate.GetPlayers().GetPlayers())*2+1), len(d))
-
-			round, err = testClient.SetAction(ctx, round)
-			require.NoError(t, err)
 			require.NotEqual(t, 0, round.GetAction())
+
+			// verify small and big blinds as been deducted
+			// Need to re-get the game since the players have been updated
+			game, err = testClient.GetGame(ctx, readyGame)
+			ring, err := game_ring.NewRing(game)
+			require.NoError(t, err)
+
+			err = ring.CurrentSmallBlind()
+			require.NoError(t, err)
+			small, err := ring.MarshalValue()
+			require.Equal(t, testMin-game.GetMin(), small.GetChips())
+
+			err = ring.CurrentBigBlind()
+			require.NoError(t, err)
+			big, err := ring.MarshalValue()
+			require.Equal(t, testMin-(game.GetMin()*2), big.GetChips())
 
 		})
 	}

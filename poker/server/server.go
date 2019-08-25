@@ -759,16 +759,20 @@ func (s *Server) ValidatePreRound(ctx context.Context, r *pb.Round) (*pb.Round, 
 
 	d := deck.Deck{}
 	d = d.Marshal(r.GetDeck())
-
-	if !d.IsFull() {
-		fmt.Println("D NOT FULL", d)
-		return nil, ErrDeckNotFull
-	}
 	return round, nil
 }
 
+// StartRound is executed to start and setup the round
+// Creates and deals a deck
+// deducts small/big blind and sets on bet to small blind
+
 func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error) {
 	round, err := s.CreateDeck(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	round, err = s.DealCards(ctx, r)
 	if err != nil {
 		return nil, err
 	}
@@ -798,9 +802,44 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 	if err != nil {
 		return nil, err
 	}
-	r.Action = small.GetSlot()
 
+	err = ring.CurrentBigBlind()
+	if err != nil {
+		return nil, err
+	}
+
+	big, err := ring.MarshalValue()
+	if err != nil {
+		return nil, err
+	}
+
+	small.Chips = small.Chips - game.GetMin()
+	big.Chips = big.Chips - (game.GetMin() * 2)
+
+	fmt.Println(small.Chips, big.Chips)
+
+	players, err := s.UpdatePlayersChips(ctx,
+		&pb.Players{
+			Players: []*pb.Player{
+				small,
+				big,
+			},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range players.GetPlayers() {
+		fmt.Println("pl;ayer chips", p.GetChips())
+	}
+	r.Action = small.GetSlot()
 	round, err = s.SetAction(ctx, round)
+	if err != nil {
+		return nil, err
+	}
+
+	round, err = s.GetRound(ctx, r)
 	if err != nil {
 		return nil, err
 	}
