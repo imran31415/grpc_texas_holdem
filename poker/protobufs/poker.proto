@@ -36,12 +36,16 @@ service Poker {
     // Round RPCs
     rpc CreateRoundFromGame(Game) returns (Round){}
     rpc GetRound(Round) returns (Round){}
+    rpc ValidatePreRound(Round) returns (Round){}
+    rpc StartRound(Round) returns (Round){}
+    rpc DealCards(Round) returns (Round){}
+    rpc UpdateDeck(Round) returns (Round){}
+    rpc CreateDeck(Round) returns (Round){}
 
     // RoundPlayers RPCs (join table)
     rpc GetRoundPlayersByRoundId(Round) returns (Players){}
     rpc CreateRoundPlayers(Round) returns (Round){}
-    rpc ValidatePreRound(Round) returns (Round){}
-    rpc StartRound(Round) returns (Round){}
+
 
     // dealing/card
 

@@ -692,7 +692,6 @@ func (s *Server) CreateRoundFromGame(ctx context.Context, g *pb.Game) (*pb.Round
 		return nil, err
 	}
 
-	fmt.Println("Marshaled round", r)
 
 	round, err := s.GetRound(ctx, r.ProtoMarshal())
 	round.Players = g.GetPlayers()
@@ -710,7 +709,6 @@ func (s *Server) CreateRoundPlayers(ctx context.Context, r *pb.Round) (*pb.Round
 	// Ignore record not found errors
 	// Ensures running CreateRoundPlayers is idempotent operations
 	if err := s.gormDb.Where("id = (?)", r.GetId()).Delete(&models.RoundPlayers{}).Error; err != gorm.ErrRecordNotFound && err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -755,17 +753,22 @@ func (s *Server) ValidatePreRound(ctx context.Context, r *pb.Round) (*pb.Round, 
 	}
 
 	d := deck.Deck{}
-	d.Marshal(r.GetDeck())
+	d = d.Marshal(r.GetDeck())
 
 	if !d.IsFull() {
+		fmt.Println("D NOT FULL", d)
 		return nil, ErrDeckNotFull
 	}
 	return round, nil
 }
 
 func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error) {
+	round, err := s.CreateDeck(ctx, r)
+	if err != nil {
+		return nil, err
+	}
 
-	round, err := s.ValidatePreRound(ctx, r)
+	round, err = s.GetRound(ctx, r)
 	if err != nil {
 		return nil, err
 	}
@@ -776,18 +779,15 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 }
 
 func (s *Server) DealCards(ctx context.Context, r *pb.Round) (*pb.Round, error) {
-	round, err := s.ValidatePreRound(ctx, r)
-	if err != nil {
-		return nil, err
-	}
 
-	for _, p := range round.GetPlayers().GetPlayers() {
+
+	for _, p := range r.GetPlayers().GetPlayers() {
 		if p.GetCards() != "" {
 			return nil, ErrExistingCards
 		}
 	}
-	d := &deck.Deck{}
-	d.Marshal(round.GetDeck())
+	d := deck.Deck{}
+	d = d.Marshal(r.GetDeck())
 	if !d.IsFull() {
 		return nil, ErrDeckNotFull
 	}
@@ -798,18 +798,80 @@ func (s *Server) DealCards(ctx context.Context, r *pb.Round) (*pb.Round, error) 
 		c1, c2 := d.DealCard(), d.DealCard()
 		p.Cards = c1.String()+c2.String()
 
-
-
 	}
-	//TODO UPDATE PLAYER RECORd
 
-	// TODO DEAL
-	//burn := d.Deal
+	_, err := s.UpdatePlayersCards(ctx, r.GetPlayers())
+	if err != nil {
+		return nil,  err
+	}
 
 	r.Deck = d.String()
-	return nil, nil
+
+	r,  err = s.UpdateDeck(ctx, r)
+	return r, nil
+}
+
+func (s *Server)UpdateDeck(ctx context.Context, r *pb.Round)(*pb.Round, error){
+	round, err := s.GetRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	round.Deck = r.GetDeck()
+	out := &models.Round{}
+	if err := s.gormDb.Where("id = ?", round.GetId()).Find(out).Update(
+		"deck", round.GetDeck()).Error; err != nil {
+		return nil, err
+	}
+	round, err = s.GetRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return round, nil
+}
+
+func (s *Server)CreateDeck(ctx context.Context, r *pb.Round)(*pb.Round, error){
+	round, err := s.GetRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	d := deck.New()
+	deck.Shuffle(d)
+
+	round.Deck = d.String()
+	out := &models.Round{}
+	if err := s.gormDb.Where("id = ?", round.GetId()).Find(out).Update(
+		"deck", round.GetDeck()).Error; err != nil {
+		return nil, err
+	}
+	round, err = s.GetRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return round, nil
+}
+
+func (s *Server) UpdatePlayersCards(ctx context.Context, in * pb.Players) (*pb.Players, error){
+
+	for _, p := range in.GetPlayers() {
+		out := &models.Player{}
+		if err := s.gormDb.Where("id = ?", p.GetId()).Find(out).Update(
+			"cards", p.GetCards()).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	players, err := s.GetPlayers(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	return players, nil
 
 }
+
 
 func Run() {
 	lis, err := net.Listen("tcp", Port)

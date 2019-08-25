@@ -1671,6 +1671,11 @@ func TestServer_CreateRoundFromGame(t *testing.T) {
 			require.NoError(t, err)
 			// num of players in round should equal teh game it was created from
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(roundPlayers.GetPlayers()))
+			round, err = testClient.StartRound(ctx, round)
+			require.NoError(t, err)
+			round, err = testClient.ValidatePreRound(ctx, round)
+			require.NoError(t, err)
+
 
 		})
 	}

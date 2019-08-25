@@ -77,7 +77,7 @@ func New() (deck Deck) {
 
 func (d Deck) IsFull() bool {
 	// 104 is a full deck (2*52)
-	if len(d.String()) == 104 {
+	if len(d) == 52 {
 		return true
 	}
 	return false
