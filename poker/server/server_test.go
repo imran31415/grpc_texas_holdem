@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"imran/poker/client"
+	"imran/poker/deck"
 	pb "imran/poker/protobufs"
 	"imran/poker/server"
 	"imran/poker/server/game_ring"
@@ -1580,23 +1581,23 @@ func TestServer_CreateRoundFromGame(t *testing.T) {
 	var playersSetA = []*pb.Player{
 		{
 			Name:  getUniqueName(),
-			Chips: 0,
+			Chips: 1000,
 		},
 		{
 			Name:  getUniqueName(),
-			Chips: 0,
+			Chips: 1000,
 		},
 		{
 			Name:  getUniqueName(),
-			Chips: 0,
+			Chips: 1000,
 		},
 		{
 			Name:  getUniqueName(),
-			Chips: 0,
+			Chips: 1000,
 		},
 		{
 			Name:  getUniqueName(),
-			Chips: 0,
+			Chips: 1000,
 		},
 	}
 
@@ -1675,7 +1676,22 @@ func TestServer_CreateRoundFromGame(t *testing.T) {
 			require.NoError(t, err)
 			round, err = testClient.ValidatePreRound(ctx, round)
 			require.NoError(t, err)
+			round, err = testClient.DealCards(ctx, round)
+			require.NoError(t, err)
 
+			for _, p := range round.GetPlayers().GetPlayers() {
+				fmt.Print(p.GetCards())
+				assert.NotEqual(t, "", p.GetCards())
+			}
+
+			d := deck.Deck{}
+			d = d.Marshal(round.GetDeck())
+			// The number of cards left in the deck should = 52 - ((2 * N) + 1), where N is number of players and 1 is for burning the first card
+			require.Equal(t, 52-(len(tt.GameToCreate.GetPlayers().GetPlayers())*2+1), len(d))
+
+			round, err = testClient.SetAction(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, 0, round.GetAction())
 
 		})
 	}

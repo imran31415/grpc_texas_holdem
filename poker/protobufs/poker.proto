@@ -12,6 +12,8 @@ service Poker {
     rpc DeletePlayers(Players) returns (google.protobuf.Empty){}
     rpc GetPlayer(Player) returns (Player){}
     rpc GetPlayersByName(Players) returns(Players){}
+    rpc UpdatePlayersChips(Players) returns(Players){}
+    rpc UpdatePlayersCards(Players) returns(Players){}
     rpc SetPlayerSlot(Player) returns (Player){}
 
     // Game RPCs
@@ -41,6 +43,7 @@ service Poker {
     rpc DealCards(Round) returns (Round){}
     rpc UpdateDeck(Round) returns (Round){}
     rpc CreateDeck(Round) returns (Round){}
+    rpc SetAction(Round) returns (Round){}
 
     // RoundPlayers RPCs (join table)
     rpc GetRoundPlayersByRoundId(Round) returns (Players){}
@@ -107,6 +110,8 @@ message Round {
     Bets bets = 8;
     int64 game = 9;
     bool in_round = 10;
+    // Slot of person who has to bet
+    int64 action = 11;
 }
 
 message Rounds {
