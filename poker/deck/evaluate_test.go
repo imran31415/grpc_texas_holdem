@@ -69,8 +69,8 @@ func TestDeck_Evaluate(t *testing.T) {
 			ExpScore: 7462,
 		},
 		{
-			Name:     "Worst hand possible",
-			hand:     []string{"Ts", "9d", "8c", "7c", "6hh"},
+			Name:     "another hand",
+			hand:     []string{"Ts", "9d", "8c", "7c", "6h"},
 			ExpScore: 1604,
 		},
 	}

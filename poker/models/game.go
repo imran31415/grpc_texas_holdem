@@ -38,7 +38,7 @@ func (g *Game) MarshalRound() *Round {
 	d := deck.New()
 
 	return &Round{
-		// Id is nil as it will be reate
+		// Id is nil as it will be created
 		Deck: d.String(),
 		Game: int64(g.ID),
 	}
