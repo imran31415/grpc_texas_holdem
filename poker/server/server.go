@@ -3,8 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"imran/poker/deck"
-	"imran/poker/models"
 	"log"
 	"math/rand"
 	"net"
@@ -14,6 +12,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"google.golang.org/grpc"
+	"imran/poker/deck"
+	"imran/poker/models"
 	pb "imran/poker/protobufs"
 	"imran/poker/server/game_ring"
 )
@@ -51,6 +51,22 @@ func NewServer(name string) (*Server, error) {
 	s := &Server{}
 	err := s.setupDatabase(name)
 	return s, err
+}
+
+func Run() {
+	lis, err := net.Listen("tcp", Port)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	serv, err := NewServer(dbName)
+	if err != nil {
+		log.Fatalf("failed to Start poker server: %v", err)
+	}
+	pb.RegisterPokerServer(s, serv)
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }
 
 func (s *Server) setupDatabase(name string) error {
@@ -973,20 +989,4 @@ func (s *Server) UpdatePlayersChips(ctx context.Context, in *pb.Players) (*pb.Pl
 		return nil, err
 	}
 	return players, nil
-}
-
-func Run() {
-	lis, err := net.Listen("tcp", Port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	serv, err := NewServer(dbName)
-	if err != nil {
-		log.Fatalf("failed to Start poker server: %v", err)
-	}
-	pb.RegisterPokerServer(s, serv)
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
 }
