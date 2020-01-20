@@ -6,7 +6,7 @@
 
 #### Test:
 
-```go run poker/server/server_test.go```
+```go test poker/server/server_test.go```
 
 ####  Get test coverage:
 
