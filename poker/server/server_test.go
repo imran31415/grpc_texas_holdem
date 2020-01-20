@@ -35,7 +35,7 @@ func getUniqueName() string {
 	return fmt.Sprintf("testName_%d", ops)
 }
 
-// Generates an error message from the server that matches what is returned by the grpc errors .Error() inverface
+// Generates an error message from the server that matches what is returned by the grpc errors .Error() interface
 func rpcError(s string) string {
 	return fmt.Sprintf("rpc error: code = Unknown desc = %s", s)
 }
@@ -1278,6 +1278,8 @@ func TestServer_DeletePlayers(t *testing.T) {
 
 }
 
+// During heads up (1v1) the blinds do not follow the same paradigm (small blind left of dealer)
+// We should test the blinds are set correctly in heads up
 func TestServer_TestHeadsUp(t *testing.T) {
 
 	var playersSetA = []*pb.Player{
@@ -1351,18 +1353,18 @@ func TestServer_TestHeadsUp(t *testing.T) {
 			for _, p := range game.GetPlayers().GetPlayers() {
 				slot := p.GetSlot()
 				assert.Greater(t, slot, int64(0))
-				assert.Less(t, slot, int64(9))
+				assert.Less(t, slot, int64(3)) // only 2 players
 			}
 
-			// TODO: create method to set this
-			game.Min = int64(100)
+			// Now that players are seated, set dealer position
+			game, err = testClient.SetMin(ctx, game)
 
 			// Now that players are seated, set dealer position
 			game, err = testClient.SetButtonPositions(ctx, game)
 			require.NoError(t, err)
 
+			// Set the min bet
 			game.Min = 100
-
 			game, err = testClient.SetMin(ctx, game)
 			require.NoError(t, err)
 			assert.Equal(t, int64(100), game.GetMin())
@@ -1665,12 +1667,12 @@ func TestServer_CreateRoundFromGame(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, readyGame.GetId(), round.GetGame())
 
-			// num of players in round should equal teh game it was created from
+			// num of players in round should equal the game it was created from
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(round.GetPlayers().GetPlayers()))
 
 			roundPlayers, err := testClient.GetRoundPlayersByRoundId(ctx, round)
 			require.NoError(t, err)
-			// num of players in round should equal teh game it was created from
+			// num of players in round should equal the game it was created from
 			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(roundPlayers.GetPlayers()))
 
 			round, err = testClient.ValidatePreRound(ctx, round)
@@ -1681,7 +1683,6 @@ func TestServer_CreateRoundFromGame(t *testing.T) {
 
 			for _, p := range round.GetPlayers().GetPlayers() {
 				assert.NotEqual(t, "", p.GetCards())
-				fmt.Println("Chips", p.GetChips())
 			}
 
 			d := deck.Deck{}
@@ -1705,6 +1706,7 @@ func TestServer_CreateRoundFromGame(t *testing.T) {
 			require.NoError(t, err)
 			big, err := ring.MarshalValue()
 			require.Equal(t, testMin-(game.GetMin()*2), big.GetChips())
+			// at this point the round is ready to go.
 
 		})
 	}

@@ -832,9 +832,8 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 	small.Chips = small.Chips - game.GetMin()
 	big.Chips = big.Chips - (game.GetMin() * 2)
 
-	fmt.Println(small.Chips, big.Chips)
 
-	players, err := s.UpdatePlayersChips(ctx,
+	_, err = s.UpdatePlayersChips(ctx,
 		&pb.Players{
 			Players: []*pb.Player{
 				small,
@@ -846,9 +845,6 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 		return nil, err
 	}
 
-	for _, p := range players.GetPlayers() {
-		fmt.Println("pl;ayer chips", p.GetChips())
-	}
 	r.Action = small.GetSlot()
 	round, err = s.SetAction(ctx, round)
 	if err != nil {
@@ -891,7 +887,6 @@ func (s *Server) DealCards(ctx context.Context, r *pb.Round) (*pb.Round, error) 
 	}
 
 	r.Deck = d.String()
-	fmt.Println("New deck is length", len(d))
 
 	r, err = s.UpdateDeck(ctx, r)
 	return r, nil
@@ -990,3 +985,36 @@ func (s *Server) UpdatePlayersChips(ctx context.Context, in *pb.Players) (*pb.Pl
 	}
 	return players, nil
 }
+
+//func (s *Server) MakeBet (ctx context.Context, in *pb.Bet) (*pb.Round, error){
+//
+//
+//	r, err := s.GetRound(ctx, &pb.Round{Id:in.GetRound()})
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	action := r.GetAction()
+//
+//	toCreate := &models.Bet{}
+//	toCreate.ProtoUnMarshal(in)
+//
+//	if err := s.gormDb.Create(toCreate).Error; err != nil {
+//		return nil, err
+//	}
+//
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

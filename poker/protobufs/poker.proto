@@ -50,10 +50,6 @@ service Poker {
     rpc CreateRoundPlayers(Round) returns (Round){}
 
 
-    // dealing/card
-
-//  rpc GetRoundsFromGame(Game) returns (Rounds){}
-
 }
 
 
