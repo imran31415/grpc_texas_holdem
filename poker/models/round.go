@@ -42,6 +42,6 @@ func (p *Round) ProtoMarshal() *pb.Round {
 		Turn:   p.Turn,
 		River:  p.River,
 		Game:   p.Game,
-		Status: pb.Round_Status(pb.Round_Status_value[p.Status]),
+		Status: pb.RoundStatus(pb.RoundStatus_value[p.Status]),
 	}
 }

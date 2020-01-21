@@ -87,17 +87,7 @@ message Games {
 // any info here is only relevant within a particular hand
 message Round {
     int64 id = 1;
-    enum Status {
-        NOT_STARTED = 0; // No betting
-        PRE_FLOP = 1;    // first round of betting is happening
-        FLOP = 2;        // second round of betting
-        RIVER = 3;       // third round of betting
-        TURN = 4;        // final round of betting
-        SHOW = 5;        // All bets are closed and we show any hands remaining
-        OVER = 6;        // Winner has been determined and chips have been disbursed
-    }
-    Status status = 2;
-
+    RoundStatus status = 2;
     Players players = 3;
     string deck = 4;
     string flop = 5;
@@ -114,18 +104,19 @@ message Rounds {
     repeated Round rounds = 1;
 }
 
+enum RoundStatus {
+    NOT_STARTED = 0; // No betting
+    PRE_FLOP = 1;    // first round of betting is happening
+    FLOP = 2;        // second round of betting
+    RIVER = 3;       // third round of betting
+    TURN = 4;        // final round of betting
+    SHOW = 5;        // All bets are closed and we show any hands remaining
+    OVER = 6;        // Winner has been determined and chips have been disbursed
+}
+
 message Bet{
     int64 id = 1;
-    enum Status {
-        NOT_STARTED = 0; // No betting
-        PRE_FLOP = 1;    // first round of betting is happening
-        FLOP = 2;        // second round of betting
-        RIVER = 3;       // third round of betting
-        TURN = 4;        // final round of betting
-        SHOW = 5;        // All bets are closed and we show any hands remaining
-        OVER = 6;        // Winner has been determined and chips have been disbursed
-    }
-    Status status = 2;
+    RoundStatus status = 2;
     int64 round = 3;
     int64 game = 4;
     int64 player = 5;

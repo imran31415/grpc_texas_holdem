@@ -41,6 +41,9 @@ var (
 	ErrDeckNotFull             = fmt.Errorf("deck is not full")
 	ErrExistingCards           = fmt.Errorf("player already has cards")
 	ErrInsufficientChips       = fmt.Errorf("player doesn't have enough chips")
+	ErrPlayerNotOnAction       = fmt.Errorf("player not on action, can not bet")
+	ErrNoBetsAllowed           = fmt.Errorf("no bets allowed for round status")
+	ErrInsufficientBet         = fmt.Errorf("insufficient bet for game minimum")
 )
 
 type Server struct {
@@ -161,6 +164,7 @@ func (s *Server) GetPlayers(ctx context.Context, players *pb.Players) (*pb.Playe
 		ids = append(ids, n.GetId())
 	}
 	s.gormDb.Where("id IN (?)", ids).Find(&outs)
+
 	return models.MarshalPlayers(outs), nil
 }
 
@@ -798,7 +802,7 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 		return nil, err
 	}
 
-	round.Status = pb.Round_PRE_FLOP
+	round.Status = pb.RoundStatus_PRE_FLOP
 
 	game, err := s.GetGame(ctx, &pb.Game{Id: round.GetGame()})
 	if err != nil {
@@ -986,28 +990,77 @@ func (s *Server) UpdatePlayersChips(ctx context.Context, in *pb.Players) (*pb.Pl
 	return players, nil
 }
 
-//func (s *Server) MakeBet (ctx context.Context, in *pb.Bet) (*pb.Round, error){
-//
-//
-//	r, err := s.GetRound(ctx, &pb.Round{Id:in.GetRound()})
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	action := r.GetAction()
-//
-//	toCreate := &models.Bet{}
-//	toCreate.ProtoUnMarshal(in)
-//
-//	if err := s.gormDb.Create(toCreate).Error; err != nil {
-//		return nil, err
-//	}
-//
-//}
+func (s *Server) MakeBet (ctx context.Context, in *pb.Bet) (*pb.Round, error){
+	game, err := s.GetGame(ctx, &pb.Game{Id:in.GetGame()})
+	if err != nil {
+		return nil, ErrGameDoesntExist
+	}
+
+	r, err := s.GetRound(ctx, &pb.Round{Id:in.GetRound()})
+	if err != nil {
+		return nil, err
+	}
+	if r.GetAction() != in.GetPlayer(){
+		return nil, ErrPlayerNotOnAction
+	}
+
+	if !statusIsValidForBet(r.GetStatus()){
+		return nil, ErrNoBetsAllowed
+	}
+
+	player, err := s.GetPlayer(ctx, &pb.Player{Id:in.GetPlayer()})
+	if err != nil || player == nil{
+		return nil, ErrPlayerDoesntExist
+	}
+
+	if in.GetChips() < game.GetMin() {
+		return nil, ErrInsufficientBet
+	}
+
+	if player.GetChips() < in.GetChips() {
+		return nil, ErrInsufficientChips
+	}
 
 
+	toCreate := &models.Bet{}
+	toCreate.ProtoUnMarshal(in)
 
+	if err := s.gormDb.Create(toCreate).Error; err != nil {
+		return nil, err
+	}
+	// TODO: fill in
+	return nil, nil
+}
 
+func (s *Server) GetRoundBets (ctx context.Context, in *pb.Round) ([]*pb.Bet, error) {
+	var bets []*models.Bet
+
+	if err := s.gormDb.Where("game = ? AND round = ?", in.GetGame(), in.GetId()).Find(&bets).Error; err != nil {
+		return nil, err
+	}
+	outs := []*pb.Bet{}
+
+	for _, b := range bets {
+		outs = append(outs, b.ProtoMarshal())
+	}
+
+	return outs, nil
+}
+
+func statusIsValidForBet(status pb.RoundStatus) bool{
+	valid :=  []pb.RoundStatus{
+		pb.RoundStatus_PRE_FLOP,
+		pb.RoundStatus_FLOP,
+		pb.RoundStatus_RIVER,
+		pb.RoundStatus_TURN,
+	}
+	for _, in := range valid{
+		if status == in {
+			return true
+		}
+	}
+	return false
+}
 
 
 

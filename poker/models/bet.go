@@ -31,7 +31,7 @@ func (b *Bet) ProtoUnMarshal(bet *pb.Bet) {
 func (b *Bet) ProtoMarshal() *pb.Bet {
 	return &pb.Bet{
 		Id:     int64(b.Model.ID),
-		Status: pb.Bet_Status(pb.Bet_Status_value[b.Status]),
+		Status: pb.RoundStatus(pb.RoundStatus_value[b.Status]),
 		Round:  b.Round,
 		Game:   b.Game,
 		Player: b.Player,
