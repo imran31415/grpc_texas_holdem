@@ -8,12 +8,13 @@ import (
 // db representation of a round of 1 sequence of dealing out cards
 type Round struct {
 	gorm.Model
-	Deck   string
-	Status string
-	Flop   string
-	Turn   string
-	River  string
-	Game   int64
+	Deck    string
+	Status  string
+	Flop    string
+	Turn    string
+	River   string
+	Game    int64
+	Action  int64
 }
 
 type RoundPlayers struct {
@@ -31,17 +32,19 @@ func (r *Round) ProtoUnMarshal(round *pb.Round) {
 	r.River = round.GetRiver()
 	r.Game = round.GetGame()
 	r.Status = round.GetStatus().String()
+	r.Action = round.GetAction()
 }
 
 // ProtoMarshal gets the protobuf representation of the DB
 func (p *Round) ProtoMarshal() *pb.Round {
 	return &pb.Round{
-		Id:     int64(p.Model.ID),
-		Deck:   p.Deck,
-		Flop:   p.Flop,
-		Turn:   p.Turn,
-		River:  p.River,
-		Game:   p.Game,
-		Status: pb.RoundStatus(pb.RoundStatus_value[p.Status]),
+		Id:      int64(p.Model.ID),
+		Deck:    p.Deck,
+		Flop:    p.Flop,
+		Turn:    p.Turn,
+		River:   p.River,
+		Game:    p.Game,
+		Status:  pb.RoundStatus(pb.RoundStatus_value[p.Status]),
+		Action:  p.Action,
 	}
 }

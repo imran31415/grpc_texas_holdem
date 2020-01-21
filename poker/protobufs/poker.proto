@@ -35,6 +35,10 @@ service Poker {
     rpc RemovePlayerFromGame(Player) returns(google.protobuf.Empty) {}
 
 
+    // RoundPlayers RPCs (join table)
+    rpc GetRoundPlayersByRoundId(Round) returns (Players){}
+    rpc CreateRoundPlayers(Round) returns (Round){}
+
     // Round RPCs
     rpc CreateRoundFromGame(Game) returns (Round){}
     rpc GetRound(Round) returns (Round){}
@@ -44,10 +48,12 @@ service Poker {
     rpc UpdateDeck(Round) returns (Round){}
     rpc CreateDeck(Round) returns (Round){}
     rpc SetAction(Round) returns (Round){}
+    rpc SetNextOnBet(Round) returns (Round){}
+    rpc GetRoundBets(Round) returns (Bets){}
+    rpc GetRoundBetsForStatus(Round) returns (Bets){}
+    rpc MakeBet(Bet) returns (Bet){}
+    rpc GetPlayerOnBet(Round) returns (Player){}
 
-    // RoundPlayers RPCs (join table)
-    rpc GetRoundPlayersByRoundId(Round) returns (Players){}
-    rpc CreateRoundPlayers(Round) returns (Round){}
 
 
 }
@@ -95,9 +101,8 @@ message Round {
     string river = 7;
     Bets bets = 8;
     int64 game = 9;
-    bool in_round = 10;
     // Slot of person who has to bet
-    int64 action = 11;
+    int64 action = 10;
 }
 
 message Rounds {

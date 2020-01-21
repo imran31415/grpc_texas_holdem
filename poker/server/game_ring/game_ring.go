@@ -8,9 +8,12 @@ import (
 	pb "imran/poker/protobufs"
 )
 
-var ErrNilRingItems = fmt.Errorf("ring should not have nil items")
-var ErrIncorrectRingValueType = fmt.Errorf("unable to marshal value from ring")
-var ErrDealerNotSet = fmt.Errorf("dealer not set")
+var (
+	ErrNilRingItems           = fmt.Errorf("ring should not have nil items")
+	ErrIncorrectRingValueType = fmt.Errorf("unable to marshal value from ring")
+	ErrDealerNotSet           = fmt.Errorf("dealer not set")
+	ErrPlayerNotSet           = fmt.Errorf("player not set")
+)
 
 // use a game ring to manage turns
 type GameRing struct {
@@ -122,6 +125,34 @@ func (g *GameRing) CurrentSmallBlind() error {
 	return nil
 }
 
+func (g *GameRing) MarshalValue() (*pb.Player, error) {
+	// a negative of this ring method is we have to type convert every time we need dealer
+	player, ok := g.Value.(*pb.Player)
+
+	if !ok {
+		return nil, ErrIncorrectRingValueType
+	}
+	return player, nil
+}
+
+func (g *GameRing) GetPlayerFromSlot(p *pb.Player) (*pb.Player, error) {
+	fmt.Println("g.Len() = ", g.Len())
+	for i := 0; i < g.Len(); i++ {
+
+		player, err := g.MarshalValue()
+		if err != nil {
+			return nil, err
+		}
+
+		if int(player.GetSlot()) == int(p.GetSlot()) {
+			return player, nil
+		}
+		g.next()
+	}
+	return nil, ErrPlayerNotSet
+
+}
+
 // next() is a local convenience method to avoid having to
 // manually re-assign ring every time we call an operation on it
 func (g *GameRing) next() {
@@ -133,14 +164,4 @@ func (g *GameRing) headsUp() bool {
 		return true
 	}
 	return false
-}
-
-func (g *GameRing) MarshalValue() (*pb.Player, error) {
-	// a negative of this ring method is we have to type convert every time we need dealer
-	player, ok := g.Value.(*pb.Player)
-
-	if !ok {
-		return nil, ErrIncorrectRingValueType
-	}
-	return player, nil
 }
