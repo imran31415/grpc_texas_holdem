@@ -136,7 +136,6 @@ func (g *GameRing) MarshalValue() (*pb.Player, error) {
 }
 
 func (g *GameRing) GetPlayerFromSlot(p *pb.Player) (*pb.Player, error) {
-	fmt.Println("g.Len() = ", g.Len())
 	for i := 0; i < g.Len(); i++ {
 
 		player, err := g.MarshalValue()
@@ -145,6 +144,23 @@ func (g *GameRing) GetPlayerFromSlot(p *pb.Player) (*pb.Player, error) {
 		}
 
 		if int(player.GetSlot()) == int(p.GetSlot()) {
+			return player, nil
+		}
+		g.next()
+	}
+	return nil, ErrPlayerNotSet
+
+}
+func (g *GameRing) GetNextPlayerFromSlot(p *pb.Player) (*pb.Player, error) {
+	for i := 0; i < g.Len(); i++ {
+
+		player, err := g.MarshalValue()
+		if err != nil {
+			return nil, err
+		}
+
+		if int(player.GetSlot()) == int(p.GetSlot()) {
+			g.next()
 			return player, nil
 		}
 		g.next()

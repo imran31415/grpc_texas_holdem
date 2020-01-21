@@ -28,8 +28,6 @@ package deck
    = 7-5-4-3-2 unsuited = 7462
 */
 
-import "fmt"
-
 var HANDSIZE_TO_PERMUTATION_MAP = make(map[int][][5]uint8, 3)
 
 var FIVE_CHOOSE_FIVE = [][5]uint8{
@@ -115,13 +113,10 @@ func init() {
 }
 
 func Logic(args []string) uint32 {
-	fmt.Println(args, "Num of args")
 	cards := make([]uint32, len(args))
 	for i := 0; i < len(args); i++ {
 		cards[i] = make_card(args[i])
 	}
-
-	fmt.Println(cards)
 
 	// get the permutations and the evaluation function
 	possible_hands := hand_permutations(cards, HANDSIZE_TO_PERMUTATION_MAP[len(cards)])
@@ -133,7 +128,6 @@ func Logic(args []string) uint32 {
 			best_score = handscore
 		}
 	}
-	fmt.Println(best_score)
 	return best_score
 }
 

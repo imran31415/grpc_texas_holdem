@@ -1879,14 +1879,39 @@ func TestServer_MakeBets(t *testing.T) {
 				bt.bet.Player = p.GetId()
 				bt.bet.Game = readyGame.GetId()
 				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
 				_, err = testClient.MakeBet(ctx, bt.bet)
 				if bt.err != "" {
-					require.Equal(t, rpcError(bt.err), err.Error())
+					require.Equal(t, bt.err, err.Error())
 				} else {
 					require.NoError(t, err)
 				}
 
 			}
+			// at this point the first person's bet (call) should be committed
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+			require.Equal(t, 1, len(bets.GetBets()))
+			b1 := bets.GetBets()[0]
+			require.Equal(t, pb.Bet_CALL, b1.GetType())
+			require.Equal(t, minChips, b1.GetChips())
+			bets, err = testClient.GetRoundBetsForStatus(ctx, round)
+			require.NoError(t, err)
+			require.Equal(t, 1, len(bets.GetBets()))
+			b1 = bets.GetBets()[0]
+			require.Equal(t, pb.Bet_CALL, b1.GetType())
+			require.Equal(t, minChips, b1.GetChips())
+
+			prevAction := round.GetAction()
+
+			round, err = testClient.GetRound(ctx, &pb.Round{Id:round.GetId()})
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, round.GetAction())
+
+
+
+
+
 
 		})
 	}

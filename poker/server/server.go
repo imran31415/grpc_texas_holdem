@@ -509,6 +509,7 @@ func (s *Server) SetNextOnBet(ctx context.Context, in *pb.Round) (*pb.Round, err
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Current Action: ", r.GetAction())
 
 	g, err := s.GetGame(ctx, &pb.Game{Id: r.GetGame()})
 	if err != nil {
@@ -520,22 +521,35 @@ func (s *Server) SetNextOnBet(ctx context.Context, in *pb.Round) (*pb.Round, err
 		return nil, err
 	}
 
-	_, err = gr.GetPlayerFromSlot(&pb.Player{Slot:in.GetAction()})
+	currentPlayer, err := gr.MarshalValue()
 
 	if err != nil {
 		return nil, err
 	}
+
+	if gr.GetDealer() == currentPlayer.GetSlot() {
+		return nil, ErrUnImplementedLogic
+	}
+
+	_, err = gr.GetNextPlayerFromSlot(&pb.Player{Slot:in.GetAction()})
+	if err != nil {
+		return nil, err
+	}
 	// Go to next person on bet
-	gr.Next()
+
 	nextAction, err := gr.MarshalValue()
+
 	if err != nil {
 		return nil, err
 	}
-	in.Action = nextAction.GetSlot()
-	r, err = s.SetAction(ctx, in)
+	r.Action = nextAction.GetSlot()
+
+
+	r, err = s.SetAction(ctx, r)
 	if err != nil {
 		return nil, err
 	}
+
 	return in, nil
 }
 
@@ -1191,6 +1205,8 @@ func (s *Server) GetRoundBetsForStatus(ctx context.Context, in *pb.Round) (*pb.B
 
 	outs := []*pb.Bet{}
 	for _, b := range bets.GetBets() {
+		log.Println(b.GetStatus(), in.GetStatus())
+
 		if b.GetStatus() == in.GetStatus() {
 			outs = append(outs, b)
 		}
