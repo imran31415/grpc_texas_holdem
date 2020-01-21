@@ -1756,7 +1756,9 @@ func TestServer_MakeBets(t *testing.T) {
 		PlayersToCreate *pb.Players
 		GameToCreate    *pb.Game
 		ExpError        string
-		betTests        []betTest
+		bet1            []betTest
+		bet2            []betTest
+		bet3            []betTest
 	}{
 		{
 			Name: "Create game players",
@@ -1772,7 +1774,7 @@ func TestServer_MakeBets(t *testing.T) {
 			},
 
 			ExpError: "",
-			betTests: []betTest{
+			bet1: []betTest{
 				{
 					bet: &pb.Bet{
 					Chips:                1,
@@ -1806,6 +1808,51 @@ func TestServer_MakeBets(t *testing.T) {
 
 				},
 				
+			},
+			bet2: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:                1,
+						Type:                 pb.Bet_RAISE,
+					},
+					err:  rpcError(server.ErrInsufficientBet.Error()),
+
+				},
+				{
+					bet: &pb.Bet{
+						Chips:                100000,
+						Type:                 pb.Bet_RAISE,
+					},
+					err:  rpcError(server.ErrInsufficientChips.Error()),
+
+				},
+				{
+					bet: &pb.Bet{
+						Chips:                minChips,
+						Type:                 pb.Bet_RAISE,
+					},
+					err:  rpcError(server.ErrWrongBetType.Error()),
+
+				},
+				{
+					bet: &pb.Bet{
+						Chips:                minChips+1,
+						Type:                 pb.Bet_RAISE,
+					},
+					err:  "",
+
+				},
+
+			},
+			bet3: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:                0,
+						Type:                 pb.Bet_FOLD,
+					},
+					err:  "",
+
+				},
 			},
 		},
 	}
@@ -1875,18 +1922,22 @@ func TestServer_MakeBets(t *testing.T) {
 			p, err := testClient.GetPlayerOnBet(ctx, round)
 			require.NoError(t, err)
 
-			for _, bt := range tt.betTests{
+			log.Println("First Player on bet, ", p.GetId(), p.GetSlot())
+
+			for _, bt := range tt.bet1 {
 				bt.bet.Player = p.GetId()
 				bt.bet.Game = readyGame.GetId()
 				bt.bet.Round = round.GetId()
 				bt.bet.Status = round.GetStatus()
 				_, err = testClient.MakeBet(ctx, bt.bet)
-				if bt.err != "" {
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
 					require.Equal(t, bt.err, err.Error())
 				} else {
 					require.NoError(t, err)
 				}
-
 			}
 			// at this point the first person's bet (call) should be committed
 			bets, err = testClient.GetRoundBets(ctx, round)
@@ -1901,13 +1952,37 @@ func TestServer_MakeBets(t *testing.T) {
 			b1 = bets.GetBets()[0]
 			require.Equal(t, pb.Bet_CALL, b1.GetType())
 			require.Equal(t, minChips, b1.GetChips())
-
 			prevAction := round.GetAction()
-
 			round, err = testClient.GetRound(ctx, &pb.Round{Id:round.GetId()})
 			require.NoError(t, err)
 			require.NotEqual(t, prevAction, round.GetAction())
+			// bet complete
 
+			// start 2nd bet
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			log.Println("Second Player on bet, ", p.GetId(), p.GetSlot())
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			for _, bt := range tt.bet2 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id:round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
 
 
 

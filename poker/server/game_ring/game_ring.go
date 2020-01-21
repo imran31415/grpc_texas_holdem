@@ -37,6 +37,7 @@ NewRing generates a ring data type using the players in a game.
 	Doing a server.GetGame() on a valid game should give the necessary info to generate a ring and start a game.
 	The server.ValidateGame() call can help determine if a game has the required info to generate a ring.
 */
+
 func NewRing(g *pb.Game) (*GameRing, error) {
 	// construct game ring:
 
@@ -68,6 +69,43 @@ func NewRing(g *pb.Game) (*GameRing, error) {
 
 	return gr, nil
 }
+
+func ActivePlayerRing(g *pb.Game) (*GameRing, error) {
+	// construct game ring:
+
+	players := g.GetPlayers().GetPlayers()
+	r := ring.New(len(players))
+	gr := &GameRing{
+		Ring: r,
+		Game: g,
+	}
+	// ensure we allocate players to the rin in correct order
+	sort.Slice(players, func(i, j int) bool {
+		return players[i].GetSlot() < players[j].GetSlot()
+	})
+	for _, p := range players {
+		if p.GetInHand(){
+			gr.Value = p
+			gr.next()
+		}
+	}
+
+	hasNil := false
+	// validate all slots are taken
+	r.Do(func(p interface{}) {
+		if p == nil {
+			hasNil = true
+		}
+	})
+	if hasNil {
+		return nil, ErrNilRingItems
+	}
+
+	return gr, nil
+
+}
+
+
 
 func (g *GameRing) CurrentDealer() (*pb.Player, error) {
 
