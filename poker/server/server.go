@@ -42,8 +42,6 @@ var (
 	ErrPlayerNotOnAction       = fmt.Errorf("player not on action, can not bet")
 	ErrNoBetsAllowed           = fmt.Errorf("no bets allowed for round status")
 	ErrInsufficientBet         = fmt.Errorf("insufficient bet for game minimum")
-	ErrGettingBets             = fmt.Errorf("error getting round bets")
-	ErrPlayerAlreadyBet        = fmt.Errorf("player already has bet for this round")
 	ErrGameIsNotInRound        = fmt.Errorf("game is not in round")
 	ErrWrongBetType            = fmt.Errorf("wrong bet type")
 	ErrNoBetTypeSet            = fmt.Errorf("no bet type set")
@@ -509,7 +507,6 @@ func (s *Server) SetNextOnBet(ctx context.Context, in *pb.Round) (*pb.Round, err
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Current Action: ", r.GetAction())
 
 	g, err := s.GetGame(ctx, &pb.Game{Id: r.GetGame()})
 	if err != nil {
@@ -531,14 +528,11 @@ func (s *Server) SetNextOnBet(ctx context.Context, in *pb.Round) (*pb.Round, err
 		return nil, ErrUnImplementedLogic
 	}
 
-
-
 	// Go to next person on bet
-	_, err = gr.GetNextPlayerFromSlot(&pb.Player{Slot:in.GetAction()})
+	_, err = gr.GetNextPlayerFromSlot(&pb.Player{Slot: in.GetAction()})
 	if err != nil {
 		return nil, err
 	}
-
 
 	nextAction, err := gr.MarshalValue()
 
@@ -547,12 +541,10 @@ func (s *Server) SetNextOnBet(ctx context.Context, in *pb.Round) (*pb.Round, err
 	}
 	r.Action = nextAction.GetSlot()
 
-
 	r, err = s.SetAction(ctx, r)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("New Action is: ", r.GetAction())
 	return in, nil
 }
 
@@ -743,7 +735,6 @@ func (s *Server) UpdateGameInRound(ctx context.Context, g *pb.Game) (*pb.Game, e
 
 func (s *Server) UpdateRoundStatus(ctx context.Context, r *pb.Round) (*pb.Round, error) {
 
-
 	toUpdate := &models.Round{}
 	toUpdate.ProtoUnMarshal(r)
 
@@ -758,6 +749,7 @@ func (s *Server) UpdateRoundStatus(ctx context.Context, r *pb.Round) (*pb.Round,
 	}
 	return out, nil
 }
+
 // CreateRoundFromGame does the following ops:
 // 1. validates the game is in a state where a new round could be created
 // 2. creates an initial model of the round from the game
@@ -868,19 +860,12 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 		return nil, err
 	}
 
-	round, err = s.GetRound(ctx, r)
-	if err != nil {
-		return nil, err
-	}
-
 	round.Status = pb.RoundStatus_PRE_FLOP
-
 	game, err := s.GetGame(ctx, &pb.Game{Id: round.GetGame()})
 
 	if err != nil {
 		return nil, err
 	}
-
 	game, err = s.UpdateGameInRound(ctx, game)
 	if err != nil {
 		return nil, err
@@ -895,22 +880,8 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 		return nil, err
 	}
 
-	err = ring.CurrentSmallBlind()
-	if err != nil {
-		return nil, err
-	}
+	big, small, err := ring.GetBigAndSmallBlind()
 
-	small, err := ring.MarshalValue()
-	if err != nil {
-		return nil, err
-	}
-
-	err = ring.CurrentBigBlind()
-	if err != nil {
-		return nil, err
-	}
-
-	big, err := ring.MarshalValue()
 	if err != nil {
 		return nil, err
 	}
@@ -918,45 +889,56 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 	small.Chips = small.Chips - game.GetMin()
 	big.Chips = big.Chips - (game.GetMin() * 2)
 
-	_, err = s.UpdatePlayersChips(ctx,
+	if _, err = s.UpdatePlayersChips(ctx,
 		&pb.Players{
 			Players: []*pb.Player{
 				small,
 				big,
 			},
 		},
-	)
-	if err != nil {
+	); err != nil {
 		return nil, err
 	}
 
-	pl, err := s.GetPlayer(ctx, &pb.Player{Id:small.GetId()})
+	smallBet := &pb.Bet{
+		Status: r.GetStatus(),
+		Round:  r.GetId(),
+		Game:   r.GetGame(),
+		Player: small.GetId(),
+		Chips:  small.GetChips(),
+		Type:   pb.Bet_SMALL,
+	}
+
+	bigBet := &pb.Bet{
+		Status: r.GetStatus(),
+		Round:  r.GetId(),
+		Game:   r.GetGame(),
+		Player: big.GetId(),
+		Chips:  big.GetChips(),
+		Type:   pb.Bet_BIG,
+	}
+
+	log.Println(smallBet, bigBet)
+
+	// TODO (add logic to make bet records for the big/small blinds)
+
+	// go to next position after big blind
+	actionPlayer, err := ring.LeftOfBigBlind()
 	if err != nil {
 		return nil, err
 	}
-
-	round.Action = pl.GetSlot()
-
+	round.Action = actionPlayer.GetSlot()
 
 	round, err = s.SetAction(ctx, round)
-
 	if err != nil {
 		return nil, err
 	}
-
-	round, err = s.GetRound(ctx, r)
-	if err != nil {
-		return nil, err
-	}
-	round.Status  = pb.RoundStatus_PRE_FLOP
+	round.Status = pb.RoundStatus_PRE_FLOP
 
 	round, err = s.UpdateRoundStatus(ctx, round)
 	if err != nil {
 		return nil, err
 	}
-
-
-
 	return round, nil
 }
 
@@ -1057,8 +1039,8 @@ func (s *Server) UpdatePlayersCards(ctx context.Context, in *pb.Players) (*pb.Pl
 	for _, p := range in.GetPlayers() {
 		out := &models.Player{}
 		toUpdate := &models.Player{
-			Cards:p.GetCards(),
-			InHand:true,
+			Cards:  p.GetCards(),
+			InHand: true,
 		}
 		if err := s.gormDb.Where("id = ?", p.GetId()).Find(out).Updates(&toUpdate).Error; err != nil {
 			return nil, err
@@ -1071,7 +1053,24 @@ func (s *Server) UpdatePlayersCards(ctx context.Context, in *pb.Players) (*pb.Pl
 	}
 
 	return players, nil
+}
 
+func (s *Server) UpdatePlayersinHand(ctx context.Context, in *pb.Players) (*pb.Players, error) {
+	for _, p := range in.GetPlayers() {
+		out := &models.Player{}
+		toUpdate := &models.Player{
+			InHand: false,
+		}
+		if err := s.gormDb.Where("id = ?", p.GetId()).Find(out).Updates(&toUpdate).Error; err != nil {
+			return nil, err
+		}
+	}
+	players, err := s.GetPlayers(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	return players, nil
 }
 
 func (s *Server) UpdatePlayersChips(ctx context.Context, in *pb.Players) (*pb.Players, error) {
@@ -1091,64 +1090,77 @@ func (s *Server) UpdatePlayersChips(ctx context.Context, in *pb.Players) (*pb.Pl
 }
 
 func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
+
 	// validate game exists
 	game, err := s.GetGame(ctx, &pb.Game{Id: in.GetGame()})
 	if err != nil {
 		return nil, ErrGameDoesntExist
 	}
-
+	// Validate game state is live
 	if game.GetInRound() != true {
 		return nil, ErrGameIsNotInRound
 	}
-
+	// Get the round info needed to validate bet
 	r, err := s.GetRound(ctx, &pb.Round{Id: in.GetRound()})
 	if err != nil {
 		return nil, err
 	}
 
-
+	// validate the round is in a state to accept bets
 	if !statusIsValidForBet(r.GetStatus()) {
 		return nil, ErrNoBetsAllowed
 	}
 
+	// validate player exists and the player's slot is the one that should be betting
 	player, err := s.GetPlayer(ctx, &pb.Player{Id: in.GetPlayer()})
-	// TODO: fix
-	if r.GetAction() != player.GetSlot() {
-		return nil, ErrPlayerNotOnAction
-	}
 	if err != nil || player == nil {
 		return nil, ErrPlayerDoesntExist
 	}
-
-	// ----
-
-	if in.GetChips() < game.GetMin() {
-		return nil, ErrInsufficientBet
+	if r.GetAction() != player.GetSlot() {
+		return nil, ErrPlayerNotOnAction
 	}
 
-	if player.GetChips() < in.GetChips() {
-		return nil, ErrInsufficientChips
+	// validate bet type
+	switch in.GetType() {
+	case pb.Bet_FOLD:
+		// do something
+		player.InHand = false
+	case pb.Bet_BIG:
+
+	case pb.Bet_SMALL:
+
 	}
 
-	currentMax, err := s.GetMaxRoundBetForStatus(ctx, r)
+	// Get the bets for the current round
+	tableMinBetRequired, err := s.GetMaxRoundBetForStatus(ctx, r)
+	// TODO: figure out blinds
 	if err != nil {
 		return nil, err
 	}
 
-	minToCall := game.GetMin()
-
-	if currentMax.GetChips() > minToCall{
-		minToCall = currentMax.GetChips()
+	if err := validateChips(
+		player.GetChips(),
+		in.GetChips(),
+		tableMinBetRequired.GetChips()); err != nil {
+		return nil, err
 	}
+
 	// validate bet type
 	switch in.GetType() {
 	case pb.Bet_FOLD:
 	case pb.Bet_CALL:
-		if in.GetChips() != minToCall {
+		if in.GetChips() < tableMinBetRequired.GetChips() {
+			log.Println("min is ", tableMinBetRequired.GetChips(), in.GetChips())
+			return nil, ErrInsufficientBet
+		}
+
+		// TODO check this base on bets table
+		if in.GetChips() != game.GetMin() {
 			return nil, ErrIncorrectBetForBetType
 		}
+
 	case pb.Bet_RAISE:
-		if in.GetChips() <= minToCall {
+		if in.GetChips() <= tableMinBetRequired.GetChips() {
 			return nil, ErrWrongBetType
 		}
 	case pb.Bet_NONE:
@@ -1178,16 +1190,38 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 		return nil, ErrUnImplementedLogic
 	}
 
-	log.Println("SettingNextOnBet")
 	if _, err := s.SetNextOnBet(ctx, r); err != nil {
 		return nil, err
 	}
 
-	log.Println("Successfully set on bet", )
+	// Update the players chips
+	player.Chips = player.Chips - in.GetChips()
+
+	if _, err = s.UpdatePlayersChips(ctx,
+		&pb.Players{
+			Players: []*pb.Player{
+				player,
+			},
+		},
+	); err != nil {
+		return nil, err
+	}
+
 	return in, nil
 }
 
+func validateChips(bank, bet, min int64) error {
+	if bet < min {
+		log.Println(bet, min)
+		return ErrInsufficientBet
+	}
 
+	if bank < bet {
+		log.Println(bank, bet, "bank, bet")
+		return ErrInsufficientChips
+	}
+	return nil
+}
 
 func (s *Server) GetRoundBets(ctx context.Context, in *pb.Round) (*pb.Bets, error) {
 	var bets []*models.Bet
@@ -1201,7 +1235,7 @@ func (s *Server) GetRoundBets(ctx context.Context, in *pb.Round) (*pb.Bets, erro
 		outs = append(outs, b.ProtoMarshal())
 	}
 	return &pb.Bets{
-		Bets:outs,
+		Bets: outs,
 	}, nil
 }
 
@@ -1219,7 +1253,7 @@ func (s *Server) GetRoundBetsForStatus(ctx context.Context, in *pb.Round) (*pb.B
 		}
 	}
 	return &pb.Bets{
-		Bets:outs,
+		Bets: outs,
 	}, nil
 
 }
@@ -1232,17 +1266,16 @@ func (s *Server) GetMaxRoundBetForStatus(ctx context.Context, in *pb.Round) (*pb
 	var out *pb.Bet
 	var max int64 = 0
 	for _, b := range bets.GetBets() {
-		if b.GetChips() > max{
+		if b.GetChips() > max {
 			max = b.GetChips()
 			out = b
 		}
 	}
 	return out, nil
 
-
 }
 
-func (s *Server) GetPlayerOnBet(ctx context.Context, in *pb.Round)(*pb.Player, error){
+func (s *Server) GetPlayerOnBet(ctx context.Context, in *pb.Round) (*pb.Player, error) {
 	g, err := s.GetGame(ctx, &pb.Game{Id: in.GetGame()})
 	if err != nil {
 		return nil, ErrGameDoesntExist
@@ -1252,7 +1285,7 @@ func (s *Server) GetPlayerOnBet(ctx context.Context, in *pb.Round)(*pb.Player, e
 	if err != nil {
 		return nil, err
 	}
-	p, err := gr.GetPlayerFromSlot(&pb.Player{Slot:in.GetAction()})
+	p, err := gr.GetPlayerFromSlot(&pb.Player{Slot: in.GetAction()})
 	if err != nil {
 		return nil, err
 	}

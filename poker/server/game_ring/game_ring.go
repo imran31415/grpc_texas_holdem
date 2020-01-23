@@ -66,7 +66,6 @@ func NewRing(g *pb.Game) (*GameRing, error) {
 	if hasNil {
 		return nil, ErrNilRingItems
 	}
-
 	return gr, nil
 }
 
@@ -84,7 +83,7 @@ func ActivePlayerRing(g *pb.Game) (*GameRing, error) {
 		return players[i].GetSlot() < players[j].GetSlot()
 	})
 	for _, p := range players {
-		if p.GetInHand(){
+		if p.GetInHand() {
 			gr.Value = p
 			gr.next()
 		}
@@ -105,7 +104,28 @@ func ActivePlayerRing(g *pb.Game) (*GameRing, error) {
 
 }
 
+func (g *GameRing) player() (*pb.Player, error) {
+	player, ok := g.Value.(*pb.Player)
+	if !ok {
+		return nil, ErrIncorrectRingValueType
+	}
+	return player, nil
 
+}
+
+func (g *GameRing) LeftOfBigBlind() (*pb.Player, error) {
+
+	if err := g.CurrentBigBlind(); err != nil {
+		return nil, err
+	}
+	g.next()
+	pl, err := g.player()
+	if err != nil {
+		return nil, err
+	}
+	return pl, nil
+
+}
 
 func (g *GameRing) CurrentDealer() (*pb.Player, error) {
 
@@ -142,6 +162,25 @@ func (g *GameRing) CurrentBigBlind() error {
 	}
 	g.next()
 	return nil
+}
+
+func (g *GameRing) GetBigAndSmallBlind() (big, small *pb.Player, err error) {
+	if err = g.CurrentSmallBlind(); err != nil {
+		return nil, nil, err
+	}
+	small, err = g.player()
+	if err != nil {
+		return nil, nil, err
+	}
+	if err = g.CurrentBigBlind(); err != nil {
+		return nil, nil, err
+	}
+	big, err = g.player()
+	if err != nil {
+		return nil, nil, err
+	}
+	return big, small, nil
+
 }
 
 func (g *GameRing) CurrentSmallBlind() error {

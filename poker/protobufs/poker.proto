@@ -53,6 +53,8 @@ service Poker {
     rpc GetRoundBetsForStatus(Round) returns (Bets){}
     rpc MakeBet(Bet) returns (Bet){}
     rpc GetPlayerOnBet(Round) returns (Player){}
+    rpc UpdatePlayersinHand(Players) returns(Players) {}
+
 
 
 
@@ -131,6 +133,8 @@ message Bet{
         FOLD = 1;
         CALL = 2;
         RAISE = 3;
+        SMALL = 4;
+        BIG   = 5;
     }
     BetType type = 7;
 }
