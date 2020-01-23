@@ -183,6 +183,22 @@ func (g *GameRing) GetBigAndSmallBlind() (big, small *pb.Player, err error) {
 
 }
 
+func  (g *GameRing) GetSmallBlindPlayer() (*pb.Player, error) {
+	if err := g.CurrentSmallBlind(); err != nil {
+		return nil,  err
+	}
+	return g.player()
+}
+
+
+func  (g *GameRing) GetBigBlindPlayer() (*pb.Player, error) {
+	if err := g.CurrentBigBlind(); err != nil {
+		return nil,  err
+	}
+	return g.player()
+}
+
+
 func (g *GameRing) CurrentSmallBlind() error {
 	// heads up means the would be big blind and small blind are
 	// switched in a 2 ring arrangement, As appose

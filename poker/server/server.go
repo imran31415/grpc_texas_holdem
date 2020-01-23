@@ -861,6 +861,13 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 	}
 
 	round.Status = pb.RoundStatus_PRE_FLOP
+
+	round, err = s.UpdateRoundStatus(ctx, round)
+	if err != nil {
+		return nil, err
+	}
+
+
 	game, err := s.GetGame(ctx, &pb.Game{Id: round.GetGame()})
 
 	if err != nil {
@@ -886,19 +893,15 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 		return nil, err
 	}
 
-	small.Chips = small.Chips - game.GetMin()
-	big.Chips = big.Chips - (game.GetMin() * 2)
+	round.Status = pb.RoundStatus_PRE_FLOP
+	// go to next position after big blind
+	round.Action = small.GetSlot()
 
-	if _, err = s.UpdatePlayersChips(ctx,
-		&pb.Players{
-			Players: []*pb.Player{
-				small,
-				big,
-			},
-		},
-	); err != nil {
+	round, err = s.SetAction(ctx, round)
+	if err != nil {
 		return nil, err
 	}
+
 
 	smallBet := &pb.Bet{
 		Status: r.GetStatus(),
@@ -922,18 +925,7 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 
 	// TODO (add logic to make bet records for the big/small blinds)
 
-	// go to next position after big blind
-	actionPlayer, err := ring.LeftOfBigBlind()
-	if err != nil {
-		return nil, err
-	}
-	round.Action = actionPlayer.GetSlot()
 
-	round, err = s.SetAction(ctx, round)
-	if err != nil {
-		return nil, err
-	}
-	round.Status = pb.RoundStatus_PRE_FLOP
 
 	round, err = s.UpdateRoundStatus(ctx, round)
 	if err != nil {
@@ -1120,38 +1112,36 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 		return nil, ErrPlayerNotOnAction
 	}
 
-	// validate bet type
+	// exit early if its a fold since we dont need to validate chips
 	switch in.GetType() {
 	case pb.Bet_FOLD:
 		// Process fold and return if they are in action
 		player.InHand = false
 		player, err = s.UpdatePlayerinHand(ctx, player)
 		return in, nil
-	case pb.Bet_BIG:
-		// TODO:
-
-	case pb.Bet_SMALL:
-		// TODO:
 	}
 
 	// Get the bets for the current round
+	// TODO refactor and update someting like getAmountNeededForUserToCall
+
 	tableMinBetRequired, err := s.GetMaxRoundBetForStatus(ctx, r)
 	// TODO: figure out blinds
 	if err != nil {
 		return nil, err
 	}
 
-	if err := validateChips(
-		player.GetChips(),
-		in.GetChips(),
-		tableMinBetRequired.GetChips()); err != nil {
-		return nil, err
-	}
+
 
 	// validate bet type
 	switch in.GetType() {
-	case pb.Bet_FOLD:
+	case pb.Bet_SMALL:
 	case pb.Bet_CALL:
+		if err := validateChips(
+			player.GetChips(),
+			in.GetChips(),
+			tableMinBetRequired.GetChips()); err != nil {
+			return nil, err
+		}
 		if in.GetChips() < tableMinBetRequired.GetChips() {
 			return nil, ErrInsufficientBet
 		}
@@ -1162,6 +1152,12 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 		}
 
 	case pb.Bet_RAISE:
+		if err := validateChips(
+			player.GetChips(),
+			in.GetChips(),
+			tableMinBetRequired.GetChips()); err != nil {
+			return nil, err
+		}
 		if in.GetChips() <= tableMinBetRequired.GetChips() {
 			return nil, ErrWrongBetType
 		}
