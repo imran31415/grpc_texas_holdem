@@ -1055,22 +1055,22 @@ func (s *Server) UpdatePlayersCards(ctx context.Context, in *pb.Players) (*pb.Pl
 	return players, nil
 }
 
-func (s *Server) UpdatePlayersinHand(ctx context.Context, in *pb.Players) (*pb.Players, error) {
-	for _, p := range in.GetPlayers() {
-		out := &models.Player{}
-		toUpdate := &models.Player{
-			InHand: false,
-		}
-		if err := s.gormDb.Where("id = ?", p.GetId()).Find(out).Updates(&toUpdate).Error; err != nil {
-			return nil, err
-		}
+func (s *Server) UpdatePlayerinHand(ctx context.Context, in *pb.Player) (*pb.Player, error) {
+
+	out := &models.Player{}
+	toUpdate := &models.Player{
+		InHand: false,
 	}
-	players, err := s.GetPlayers(ctx, in)
+	if err := s.gormDb.Where("id = ?", in.GetId()).Find(out).Updates(&toUpdate).Error; err != nil {
+		return nil, err
+	}
+
+	player, err := s.GetPlayer(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 
-	return players, nil
+	return player, nil
 }
 
 func (s *Server) UpdatePlayersChips(ctx context.Context, in *pb.Players) (*pb.Players, error) {
@@ -1123,12 +1123,15 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 	// validate bet type
 	switch in.GetType() {
 	case pb.Bet_FOLD:
-		// do something
+		// Process fold and return if they are in action
 		player.InHand = false
+		player, err = s.UpdatePlayerinHand(ctx, player)
+		return in, nil
 	case pb.Bet_BIG:
+		// TODO:
 
 	case pb.Bet_SMALL:
-
+		// TODO:
 	}
 
 	// Get the bets for the current round
@@ -1150,7 +1153,6 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 	case pb.Bet_FOLD:
 	case pb.Bet_CALL:
 		if in.GetChips() < tableMinBetRequired.GetChips() {
-			log.Println("min is ", tableMinBetRequired.GetChips(), in.GetChips())
 			return nil, ErrInsufficientBet
 		}
 
@@ -1212,12 +1214,10 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 
 func validateChips(bank, bet, min int64) error {
 	if bet < min {
-		log.Println(bet, min)
 		return ErrInsufficientBet
 	}
 
 	if bank < bet {
-		log.Println(bank, bet, "bank, bet")
 		return ErrInsufficientChips
 	}
 	return nil

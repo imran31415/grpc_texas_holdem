@@ -53,7 +53,7 @@ service Poker {
     rpc GetRoundBetsForStatus(Round) returns (Bets){}
     rpc MakeBet(Bet) returns (Bet){}
     rpc GetPlayerOnBet(Round) returns (Player){}
-    rpc UpdatePlayersinHand(Players) returns(Players) {}
+    rpc UpdatePlayerinHand(Player) returns(Player) {}
 
 
 
