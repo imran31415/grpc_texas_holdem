@@ -113,9 +113,9 @@ func (g *GameRing) player() (*pb.Player, error) {
 
 }
 
-func (g *GameRing) LeftOfBigBlind() (*pb.Player, error) {
+func (g *GameRing) LeftOfDealer() (*pb.Player, error) {
 
-	if err := g.CurrentBigBlind(); err != nil {
+	if _, err := g.CurrentDealer(); err != nil {
 		return nil, err
 	}
 	g.next()

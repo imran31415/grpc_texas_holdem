@@ -1780,6 +1780,7 @@ func TestServer_MakeBets(t *testing.T) {
 				Players: &pb.Players{
 					Players: playersSetA,
 				},
+				Min:minChips,
 			},
 
 			ExpError: "",
@@ -1800,14 +1801,14 @@ func TestServer_MakeBets(t *testing.T) {
 				},
 				{
 					bet: &pb.Bet{
-						Chips: minChips + 1,
+						Chips: minChips*2 + 1,
 						Type:  pb.Bet_CALL,
 					},
 					err: rpcError(server.ErrIncorrectBetForBetType.Error()),
 				},
 				{
 					bet: &pb.Bet{
-						Chips: minChips,
+						Chips: minChips*2,
 						Type:  pb.Bet_CALL,
 					},
 					err: "",
@@ -1830,14 +1831,14 @@ func TestServer_MakeBets(t *testing.T) {
 				},
 				{
 					bet: &pb.Bet{
-						Chips: minChips,
+						Chips: minChips*2,
 						Type:  pb.Bet_RAISE,
 					},
 					err: rpcError(server.ErrWrongBetType.Error()),
 				},
 				{
 					bet: &pb.Bet{
-						Chips: minChips + 1,
+						Chips: minChips*2 + 1,
 						Type:  pb.Bet_RAISE,
 					},
 					err: "",
@@ -1912,7 +1913,8 @@ func TestServer_MakeBets(t *testing.T) {
 
 			bets, err := testClient.GetRoundBets(ctx, round)
 			require.NoError(t, err)
-			require.Nil(t, bets.GetBets())
+			// big and small blinds
+			require.Equal(t, 2, len(bets.GetBets()))
 			bets, err = testClient.GetRoundBetsForStatus(ctx, round)
 			require.NoError(t, err)
 			require.Nil(t, bets.GetBets())
@@ -1939,10 +1941,16 @@ func TestServer_MakeBets(t *testing.T) {
 			// at this point the first person's bet (call) should be committed
 			bets, err = testClient.GetRoundBets(ctx, round)
 			require.NoError(t, err)
-			require.Equal(t, 1, len(bets.GetBets()))
+			require.Equal(t, 3, len(bets.GetBets()))
 			b1 := bets.GetBets()[0]
-			require.Equal(t, pb.Bet_CALL, b1.GetType())
-			require.Equal(t, minChips, b1.GetChips())
+			require.Equal(t, pb.Bet_SMALL, b1.GetType())
+			require.Equal(t, game.GetMin(), b1.GetChips())
+			b2 := bets.GetBets()[1]
+			require.Equal(t, pb.Bet_BIG, b2.GetType())
+			require.Equal(t, game.GetMin()*2, b2.GetChips())
+			b3 := bets.GetBets()[2]
+			require.Equal(t, pb.Bet_CALL, b3.GetType())
+			require.Equal(t, game.GetMin()*2, b3.GetChips())
 			bets, err = testClient.GetRoundBetsForStatus(ctx, round)
 			require.NoError(t, err)
 			require.Equal(t, 1, len(bets.GetBets()))
@@ -1999,3 +2007,5 @@ func TestServer_MakeBets(t *testing.T) {
 		})
 	}
 }
+
+

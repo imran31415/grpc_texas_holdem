@@ -867,7 +867,6 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 		return nil, err
 	}
 
-
 	game, err := s.GetGame(ctx, &pb.Game{Id: round.GetGame()})
 
 	if err != nil {
@@ -902,13 +901,12 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 		return nil, err
 	}
 
-
 	smallBet := &pb.Bet{
 		Status: r.GetStatus(),
 		Round:  r.GetId(),
 		Game:   r.GetGame(),
 		Player: small.GetId(),
-		Chips:  small.GetChips(),
+		Chips:  game.GetMin(),
 		Type:   pb.Bet_SMALL,
 	}
 
@@ -917,20 +915,37 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 		Round:  r.GetId(),
 		Game:   r.GetGame(),
 		Player: big.GetId(),
-		Chips:  big.GetChips(),
+		Chips:  game.GetMin()*2,
 		Type:   pb.Bet_BIG,
 	}
 
 	log.Println(smallBet, bigBet)
 
-	// TODO (add logic to make bet records for the big/small blinds)
+	if _, err := s.MakeBet(ctx, smallBet); err != nil {
 
-
-
+		return nil, err
+	}
+	if _, err := s.MakeBet(ctx, bigBet); err != nil {
+		return nil, err
+	}
 	round, err = s.UpdateRoundStatus(ctx, round)
 	if err != nil {
 		return nil, err
 	}
+
+	p, err := ring.LeftOfDealer()
+
+	if err != nil {
+		return nil, err
+	}
+
+	r.Action = p.GetSlot()
+
+	r, err = s.SetAction(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
 	return round, nil
 }
 
@@ -1124,13 +1139,11 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 	// Get the bets for the current round
 	// TODO refactor and update someting like getAmountNeededForUserToCall
 
-	tableMinBetRequired, err := s.GetMaxRoundBetForStatus(ctx, r)
+	tableMinBetRequired, err := s.GetAmountToCallForPlayer(ctx, r, player)
 	// TODO: figure out blinds
 	if err != nil {
 		return nil, err
 	}
-
-
 
 	// validate bet type
 	switch in.GetType() {
@@ -1139,15 +1152,16 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 		if err := validateChips(
 			player.GetChips(),
 			in.GetChips(),
-			tableMinBetRequired.GetChips()); err != nil {
+			tableMinBetRequired); err != nil {
 			return nil, err
 		}
-		if in.GetChips() < tableMinBetRequired.GetChips() {
+		if in.GetChips() < tableMinBetRequired {
 			return nil, ErrInsufficientBet
 		}
 
 		// TODO check this base on bets table
-		if in.GetChips() != game.GetMin() {
+		if in.GetChips() != tableMinBetRequired {
+			log.Println("expected: ", tableMinBetRequired, "Got: ", in.GetChips())
 			return nil, ErrIncorrectBetForBetType
 		}
 
@@ -1155,10 +1169,10 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 		if err := validateChips(
 			player.GetChips(),
 			in.GetChips(),
-			tableMinBetRequired.GetChips()); err != nil {
+			tableMinBetRequired); err != nil {
 			return nil, err
 		}
-		if in.GetChips() <= tableMinBetRequired.GetChips() {
+		if in.GetChips() <= tableMinBetRequired {
 			return nil, ErrWrongBetType
 		}
 	case pb.Bet_NONE:
@@ -1268,8 +1282,42 @@ func (s *Server) GetMaxRoundBetForStatus(ctx context.Context, in *pb.Round) (*pb
 		}
 	}
 	return out, nil
-
 }
+
+// TODO: make this a query instead
+func (s *Server) GetAmountToCallForPlayer(ctx context.Context, in *pb.Round, player *pb.Player) (int64, error) {
+	bets, err := s.GetRoundBetsForStatus(ctx, in)
+	if err != nil {
+		return 0, err
+	}
+	var out []*pb.Bet
+	var total int64 = 0
+	var betMap map[int64]int64
+	for x, b := range bets.GetBets() {
+		// TODO(this broken)
+		log.Println(x, b)
+		betMap[b.GetPlayer()] += b.GetChips()
+		if b.GetPlayer()== player.GetId() {
+			out = append(out, b)
+			total += b.GetChips()
+		}
+	}
+	maxBetTotal := total
+
+
+	for _, betTotal := range betMap{
+		if betTotal > maxBetTotal {
+			maxBetTotal = betTotal
+		}
+	}
+
+	toCall := total - maxBetTotal
+
+	log.Println("total: ", total, " maxBetTotal: ", maxBetTotal)
+
+	return toCall, nil
+}
+
 
 func (s *Server) GetPlayerOnBet(ctx context.Context, in *pb.Round) (*pb.Player, error) {
 	g, err := s.GetGame(ctx, &pb.Game{Id: in.GetGame()})
