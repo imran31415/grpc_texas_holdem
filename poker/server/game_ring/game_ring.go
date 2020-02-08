@@ -3,7 +3,6 @@ package game_ring
 import (
 	"container/ring"
 	"fmt"
-	"log"
 	"sort"
 
 	pb "imran/poker/protobufs"
@@ -74,10 +73,8 @@ func ActivePlayerRing(g *pb.Game) (*GameRing, error) {
 	// construct game ring of only active players in hand
 
 	players:= []*pb.Player{}
-	log.Println("Active Players: ")
 	for _, p := range  g.GetPlayers().GetPlayers() {
 		if p.GetInHand() {
-			log.Println("p", p.GetId(), p.GetSlot())
 			players = append(players, p)
 		}
 	}

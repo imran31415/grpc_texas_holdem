@@ -520,7 +520,6 @@ func (s *Server) SetNextOnBet(ctx context.Context, in *pb.Round) (*pb.Round, err
 
 	// Go to next person on bet
 	_, err = gr.GetNextPlayerFromSlot(&pb.Player{Slot: in.GetAction()})
-	log.Println("in.GetAction", in.GetAction())
 	if err != nil {
 		return nil, err
 	}
@@ -530,7 +529,6 @@ func (s *Server) SetNextOnBet(ctx context.Context, in *pb.Round) (*pb.Round, err
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Previous action: ", r.Action, "Next Action: ", nextAction.GetSlot())
 	r.Action = nextAction.GetSlot()
 
 
@@ -841,7 +839,6 @@ func (s *Server) ValidatePreRound(ctx context.Context, r *pb.Round) (*pb.Round, 
 // Creates and deals a deck
 // deducts small/big blind and sets on bet to small blind
 func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error) {
-	log.Println("\n\n STARTING ROUND")
 	r, err := s.CreateDeck(ctx, r)
 	if err != nil {
 		return nil, err
@@ -879,7 +876,6 @@ func (s *Server) StartRound(ctx context.Context, r *pb.Round) (*pb.Round, error)
 	}
 
 	big, small, err := ring.GetBigAndSmallBlind()
-	log.Println("BIG: ", big.GetId(), "SMALL: ", small.GetId())
 
 	if err != nil {
 		return nil, err
@@ -1121,10 +1117,7 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 	}
 
 	// Get the bets for the current round
-	// TODO refactor and update someting like getAmountNeededForUserToCall
-
 	tableMinBetRequired, err := s.GetAmountToCallForPlayer(ctx, r, player)
-	log.Println("TABLE MIN REQUIRED: ", tableMinBetRequired)
 	// TODO: figure out blinds
 	if err != nil {
 		return nil, err
@@ -1145,7 +1138,6 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 		}
 
 		if in.GetChips() != tableMinBetRequired {
-			log.Println("expected: ", tableMinBetRequired, "Got: ", in.GetChips())
 			return nil, ErrIncorrectBetForBetType
 		}
 
@@ -1182,7 +1174,6 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 	// TODO: If the player that is making the bet is the dealer we need to end the round and do the flop.
 
 	if game.GetDealer() == player.GetId() {
-		log.Println("Dealer is the current player, need to implement this logic")
 		return nil, ErrUnImplementedLogic
 	}
 
@@ -1275,7 +1266,6 @@ func (s *Server) GetMaxRoundBetForStatus(ctx context.Context, in *pb.Round) (*pb
 
 // TODO: make this a query instead
 func (s *Server) GetAmountToCallForPlayer(ctx context.Context, in *pb.Round, player *pb.Player) (int64, error) {
-	log.Println("GettingAmount to call for player: ", player.GetId())
 	bets, err := s.GetRoundBetsForStatus(ctx, in)
 	if err != nil {
 		return 0, err
@@ -1284,7 +1274,6 @@ func (s *Server) GetAmountToCallForPlayer(ctx context.Context, in *pb.Round, pla
 	m := map[int64]int64{}
 
 	for _, i := range bets.GetBets() {
-		log.Println("BET", i.Chips, i.GetPlayer())
 		m[i.GetPlayer()] = i.GetChips() + m[i.GetPlayer()]
 	}
 
@@ -1349,11 +1338,10 @@ func (s *Server) GetRoundInfo(ctx context.Context, in *pb.Round) error {
 
 	g, err := s.GetGame(ctx, &pb.Game{Id:r.GetGame()})
 
-
-	log.Println("")
-	log.Printf("Round %+v", r)
-	log.Printf("Game: %+v", g)
-	log.Println("")
+	if err != nil {
+		return err
+	}
+	log.Printf("\n Round status: %s\n Action: %d \n #Players: %d, \nDealer: %s", r.GetStatus(), r.GetAction(), len(r.GetPlayers().GetPlayers()), g.GetDealer())
 
 
 	return nil

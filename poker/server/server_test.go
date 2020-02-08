@@ -1844,7 +1844,7 @@ func TestServer_MakeBets(t *testing.T) {
 					err: "",
 				},
 			},
-			// TODO: Next
+			// TODO: add test cases for folding and getting to the end of betting round
 			//bet3: []betTest{
 			//	{
 			//		bet: &pb.Bet{
@@ -1922,7 +1922,6 @@ func TestServer_MakeBets(t *testing.T) {
 			require.Equal(t, 2, len(bets.GetBets()))
 			// Get the player that should be making a bet and try to make one
 			p, err := testClient.GetPlayerOnBet(ctx, round)
-			log.Println("\n\nPlayer on First bet after blinds: ", p.GetId())
 			require.NoError(t, err)
 
 			for _, bt := range tt.bet1 {
@@ -1999,7 +1998,10 @@ func TestServer_MakeBets(t *testing.T) {
 			p, err = testClient.GetPlayerOnBet(ctx, round)
 			require.NoError(t, err)
 			require.NotEqual(t, prevAction, p.GetSlot())
-			// TODO
+			// TODO:
+			// Add ability to deal with folds
+			// add ability to deal with last bet.
+
 			//for _, bt := range tt.bet3 {
 			//	bt.bet.Player = p.GetId()
 			//	bt.bet.Game = readyGame.GetId()
