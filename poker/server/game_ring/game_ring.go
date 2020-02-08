@@ -3,6 +3,7 @@ package game_ring
 import (
 	"container/ring"
 	"fmt"
+	"log"
 	"sort"
 
 	pb "imran/poker/protobufs"
@@ -70,9 +71,17 @@ func NewRing(g *pb.Game) (*GameRing, error) {
 }
 
 func ActivePlayerRing(g *pb.Game) (*GameRing, error) {
-	// construct game ring:
+	// construct game ring of only active players in hand
 
-	players := g.GetPlayers().GetPlayers()
+	players:= []*pb.Player{}
+	log.Println("Active Players: ")
+	for _, p := range  g.GetPlayers().GetPlayers() {
+		if p.GetInHand() {
+			log.Println("p", p.GetId(), p.GetSlot())
+			players = append(players, p)
+		}
+	}
+
 	r := ring.New(len(players))
 	gr := &GameRing{
 		Ring: r,
@@ -83,10 +92,8 @@ func ActivePlayerRing(g *pb.Game) (*GameRing, error) {
 		return players[i].GetSlot() < players[j].GetSlot()
 	})
 	for _, p := range players {
-		if p.GetInHand() {
-			gr.Value = p
-			gr.next()
-		}
+		gr.Value = p
+		gr.next()
 	}
 
 	hasNil := false
@@ -99,7 +106,6 @@ func ActivePlayerRing(g *pb.Game) (*GameRing, error) {
 	if hasNil {
 		return nil, ErrNilRingItems
 	}
-
 	return gr, nil
 
 }

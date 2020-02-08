@@ -21,7 +21,7 @@ func (b *Bet) ProtoUnMarshal(bet *pb.Bet) {
 	b.Status = bet.GetStatus().String()
 	b.Round = bet.GetRound()
 	b.Game = bet.GetGame()
-	b.Player = bet.GetGame()
+	b.Player = bet.GetPlayer()
 	b.Chips = bet.GetChips()
 	b.Type = bet.GetType().String()
 
