@@ -69,44 +69,6 @@ func NewRing(g *pb.Game) (*GameRing, error) {
 	return gr, nil
 }
 
-func ActivePlayerRing(g *pb.Game) (*GameRing, error) {
-	// construct game ring of only active players in hand
-
-	players:= []*pb.Player{}
-	for _, p := range  g.GetPlayers().GetPlayers() {
-		if p.GetInHand() {
-			players = append(players, p)
-		}
-	}
-
-	r := ring.New(len(players))
-	gr := &GameRing{
-		Ring: r,
-		Game: g,
-	}
-	// ensure we allocate players to the rin in correct order
-	sort.Slice(players, func(i, j int) bool {
-		return players[i].GetSlot() < players[j].GetSlot()
-	})
-	for _, p := range players {
-		gr.Value = p
-		gr.next()
-	}
-
-	hasNil := false
-	// validate all slots are taken
-	r.Do(func(p interface{}) {
-		if p == nil {
-			hasNil = true
-		}
-	})
-	if hasNil {
-		return nil, ErrNilRingItems
-	}
-	return gr, nil
-
-}
-
 func (g *GameRing) player() (*pb.Player, error) {
 	player, ok := g.Value.(*pb.Player)
 	if !ok {
@@ -186,21 +148,19 @@ func (g *GameRing) GetBigAndSmallBlind() (big, small *pb.Player, err error) {
 
 }
 
-func  (g *GameRing) GetSmallBlindPlayer() (*pb.Player, error) {
+func (g *GameRing) GetSmallBlindPlayer() (*pb.Player, error) {
 	if err := g.CurrentSmallBlind(); err != nil {
-		return nil,  err
+		return nil, err
 	}
 	return g.player()
 }
 
-
-func  (g *GameRing) GetBigBlindPlayer() (*pb.Player, error) {
+func (g *GameRing) GetBigBlindPlayer() (*pb.Player, error) {
 	if err := g.CurrentBigBlind(); err != nil {
-		return nil,  err
+		return nil, err
 	}
 	return g.player()
 }
-
 
 func (g *GameRing) CurrentSmallBlind() error {
 	// heads up means the would be big blind and small blind are

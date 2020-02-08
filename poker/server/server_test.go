@@ -1768,6 +1768,13 @@ func TestServer_MakeBets(t *testing.T) {
 		bet1            []betTest
 		bet2            []betTest
 		bet3            []betTest
+		bet4            []betTest
+		bet5            []betTest
+		bet6            []betTest
+		bet7            []betTest
+		bet8            []betTest
+		bet9            []betTest
+		bet10           []betTest
 	}{
 		{
 			Name: "Make bets",
@@ -1784,6 +1791,7 @@ func TestServer_MakeBets(t *testing.T) {
 			},
 
 			ExpError: "",
+			// First bet, should be a call to the same amount as a big blind
 			bet1: []betTest{
 				{
 					bet: &pb.Bet{
@@ -1814,6 +1822,7 @@ func TestServer_MakeBets(t *testing.T) {
 					err: "",
 				},
 			},
+			// Second bet, lets do a raise which is 1 more chip than the prev call
 			bet2: []betTest{
 				{
 					bet: &pb.Bet{
@@ -1844,16 +1853,80 @@ func TestServer_MakeBets(t *testing.T) {
 					err: "",
 				},
 			},
-			// TODO: add test cases for folding and getting to the end of betting round
-			//bet3: []betTest{
-			//	{
-			//		bet: &pb.Bet{
-			//			Chips: 0,
-			//			Type:  pb.Bet_FOLD,
-			//		},
-			//		err: "",
-			//	},
-			//},
+			// Third bet, test a fold will remove player from hand
+			bet3: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips: 0,
+						Type:  pb.Bet_FOLD,
+					},
+					err: "",
+				},
+			},
+			bet4: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips: minChips*2 + 1,
+						Type:  pb.Bet_RAISE,
+					},
+					err: rpcError(server.ErrWrongBetType.Error()),
+				},
+				{
+					bet: &pb.Bet{
+						Chips: minChips*2 + 1,
+						Type:  pb.Bet_CALL,
+					},
+					err: "",
+				},
+			},
+			bet5: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips: minChips*2 + 1,
+						Type:  pb.Bet_CALL,
+					},
+					err: "",
+				},
+			},
+			bet6: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips: minChips*2 + 1,
+						Type:  pb.Bet_CALL,
+					},
+					err: "",
+				},
+			},
+			// there are 7 players left, so this is back to the small blind who owes 11 (big blind-small +raise) (20 -10 +1)
+			bet7: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips: minChips + 1,
+						Type:  pb.Bet_CALL,
+					},
+					err: "",
+				},
+			},
+			// This is the big blind so only need 1 to call since that's what the raise was
+			bet8: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips: 1,
+						Type:  pb.Bet_CALL,
+					},
+					err: "",
+				},
+			},
+			// this is the first button position that originally raised, needs 1 to continue
+			bet9: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips: 1,
+						Type:  pb.Bet_CALL,
+					},
+					err: rpcError(server.ErrUnImplementedLogic.Error()),
+				},
+			},
 		},
 	}
 
@@ -1977,6 +2050,7 @@ func TestServer_MakeBets(t *testing.T) {
 			p, err = testClient.GetPlayerOnBet(ctx, round)
 			require.NoError(t, err)
 			require.NotEqual(t, prevAction, p.GetSlot())
+
 			for _, bt := range tt.bet2 {
 				fmt.Println(bt)
 				bt.bet.Player = p.GetId()
@@ -1998,26 +2072,166 @@ func TestServer_MakeBets(t *testing.T) {
 			p, err = testClient.GetPlayerOnBet(ctx, round)
 			require.NoError(t, err)
 			require.NotEqual(t, prevAction, p.GetSlot())
-			// TODO:
-			// Add ability to deal with folds
+			//TODO
 			// add ability to deal with last bet.
 
-			//for _, bt := range tt.bet3 {
-			//	bt.bet.Player = p.GetId()
-			//	bt.bet.Game = readyGame.GetId()
-			//	bt.bet.Round = round.GetId()
-			//	bt.bet.Status = round.GetStatus()
-			//	_, err = testClient.MakeBet(ctx, bt.bet)
-			//	if err == nil && bt.err != "" {
-			//		log.Println("Returned No Error when expected to receive the error: ", bt.err)
-			//		t.Fail()
-			//	} else if bt.err != "" {
-			//		require.Equal(t, bt.err, err.Error())
-			//	} else {
-			//		require.NoError(t, err)
-			//	}
-			//}
+			for _, bt := range tt.bet3 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+
+			for _, bt := range tt.bet4 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+
+			for _, bt := range tt.bet5 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+
+			for _, bt := range tt.bet6 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+
+			for _, bt := range tt.bet7 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+
+			for _, bt := range tt.bet8 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			for _, b := range bets.GetBets() {
+				log.Println(b.GetPlayer(), b.GetChips(), b.GetStatus(), b.GetType())
+			}
+
+			for _, bt := range tt.bet9 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				bt.bet.Status = round.GetStatus()
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
 
 		})
+
 	}
 }

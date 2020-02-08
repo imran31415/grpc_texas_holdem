@@ -53,13 +53,19 @@ service Poker {
     rpc GetRoundBetsForStatus(Round) returns (Bets){}
     rpc MakeBet(Bet) returns (Bet){}
     rpc GetPlayerOnBet(Round) returns (Player){}
-    rpc UpdatePlayerinHand(Player) returns(Player) {}
-
-
-
+    rpc UpdatePlayerNotinHand(Player) returns(Player) {}
+    rpc GetAmountToCallForPlayer(AmountToCall) returns (AmountToCall) {}
+    rpc IsBettingOver(AmountToCall) returns (AmountToCall) {}
 
 }
 
+// convenience method, not saved in db
+message AmountToCall {
+    Player player = 1;
+    Round round = 2;
+    int64 chips = 3;
+    bool betting_over = 4;
+}
 
 message Player {
     int64 id = 1;
