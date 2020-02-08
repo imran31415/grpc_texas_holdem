@@ -1203,6 +1203,12 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Bet, error) {
 	}
 
 	if over.GetBettingOver() {
+		// TODO:
+		// 1. Deal the FLOP
+		// 2. Update round status to be POST_FLOP
+		// 3. Set action to dealer (if he is still in round).
+		// This is going to be tricky as the game ring is generated from all players
+		// TODO (untangle this)
 		return nil, ErrUnImplementedLogic
 	}
 
@@ -1370,8 +1376,8 @@ func (s *Server) IsBettingOver(ctx context.Context, in *pb.AmountToCall) (*pb.Am
 	if activePlayers == uniqueBets {
 
 		log.Println("Betting over", " Active players: ", activePlayers, " unique bets: ", uniqueBets)
-		in.BettingOver = false
-		return in, ErrUnImplementedLogic
+		in.BettingOver = true
+		return in, nil
 	}
 
 	return in, nil

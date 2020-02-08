@@ -36,6 +36,8 @@ NewRing generates a ring data type using the players in a game.
 
 	Doing a server.GetGame() on a valid game should give the necessary info to generate a ring and start a game.
 	The server.ValidateGame() call can help determine if a game has the required info to generate a ring.
+
+	Note: there is an edge case where if it is heads up (2 players) the blinds would be reversed
 */
 
 func NewRing(g *pb.Game) (*GameRing, error) {
