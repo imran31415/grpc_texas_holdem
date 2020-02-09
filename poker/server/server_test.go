@@ -1813,8 +1813,17 @@ func TestServer_MakeBets(t *testing.T) {
 		river_bet3 []betTest
 		river_bet4 []betTest
 		river_bet5 []betTest
-		river_bet6 []betTest
-		river_bet7 []betTest
+
+		turn_bet1 []betTest
+		turn_bet2 []betTest
+		turn_bet3 []betTest
+		turn_bet4 []betTest
+		turn_bet5 []betTest
+
+		show_bet1 []betTest
+		show_bet2 []betTest
+		show_bet3 []betTest
+		show_bet4 []betTest
 	}{
 		{
 			Name: "Make bets",
@@ -2144,6 +2153,114 @@ func TestServer_MakeBets(t *testing.T) {
 					err: "",
 				},
 			},
+			turn_bet1: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_RAISE,
+						Status: pb.RoundStatus_RIVER,
+					},
+					err: rpcError(server.ErrWrongBetStatus.Error()),
+				},
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_FOLD,
+						Status: pb.RoundStatus_TURN,
+					},
+					err: "",
+				},
+			},
+			turn_bet2: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_RAISE,
+						Status: pb.RoundStatus_TURN,
+					},
+					err: "",
+				},
+			},
+			turn_bet3: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_TURN,
+					},
+					err: "",
+				},
+			},
+			turn_bet4: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_TURN,
+					},
+					err: "",
+				},
+			},
+			turn_bet5: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_TURN,
+					},
+					err: "",
+				},
+			},
+			show_bet1: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_TURN,
+					},
+					err: rpcError(server.ErrWrongBetStatus.Error()),
+				},
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_SHOW,
+					},
+					err: "",
+				},
+			},
+			show_bet2: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_SHOW,
+					},
+					err: "",
+				},
+			},
+			show_bet3: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_SHOW,
+					},
+					err: "",
+				},
+			},
+			show_bet4: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_SHOW,
+					},
+					err: rpcError(server.ErrUnImplementedLogic.Error()),
+				},
+			},
 		},
 	}
 
@@ -2217,8 +2334,9 @@ func TestServer_MakeBets(t *testing.T) {
 
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.bet1)
 
-			// test that the small and big blinds are set correctly
-			// also check first bet
+			///////////////////////////////////////////
+			// At this point small and big blinds are set and the first bet has been cast.
+			// Check the things we expect
 
 			require.Equal(t, 3, len(bets.GetBets()))
 			b1 := bets.GetBets()[0]
@@ -2254,7 +2372,7 @@ func TestServer_MakeBets(t *testing.T) {
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.bet8)
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.bet9)
 
-			///////
+			///////////////////////////////////////////
 			// At this point the betting round is over,
 			// The following should be true:
 			// - Flop is saved to round
@@ -2273,8 +2391,7 @@ func TestServer_MakeBets(t *testing.T) {
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.posFlop_bet7)
 
 			// First bet of POST FLOP:
-
-			///////
+			///////////////////////////////////////////
 			// At this point the betting round is over,
 			// The following should be true:
 			// - River is saved to round
@@ -2291,7 +2408,7 @@ func TestServer_MakeBets(t *testing.T) {
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.river_bet4)
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.river_bet5)
 
-			///////
+			///////////////////////////////////////////
 			// At this point the betting round is over,
 			// The following should be true:
 			// - River is saved to round
@@ -2302,12 +2419,25 @@ func TestServer_MakeBets(t *testing.T) {
 			// 1 card (2 character)
 			require.Equal(t, 2, len(round.GetTurn()))
 
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.turn_bet1)
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.turn_bet2)
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.turn_bet3)
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.turn_bet4)
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.turn_bet5)
+
+			require.Equal(t, pb.RoundStatus_SHOW, round.GetStatus())
+			// 1 card (2 character)
+			require.Equal(t, 2, len(round.GetTurn()))
+
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet1)
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet2)
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet3)
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet4)
 			logRoundBets(t, ctx, round)
 
 			// TODO: Add loops for final Turn round bet
 			// Need a case in SetNextRound that if its the turn and there are > 1 player in
 			// then we need to evaluate the cards and determine the winner
-			t.Fail()
 
 		})
 

@@ -1259,7 +1259,6 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Round, error) {
 
 	// validate bet type
 	switch in.GetType() {
-	case pb.Bet_SMALL:
 	case pb.Bet_FOLD:
 		// Process fold and return if they are in action
 		player, err = s.UpdatePlayerNotinHand(ctx, &pb.Player{Id: player.GetId()})
@@ -1376,7 +1375,8 @@ func (s *Server) SetNextRound(ctx context.Context, in *pb.Round) (*pb.Round, err
 		pb.RoundStatus_PRE_FLOP: pb.RoundStatus_FLOP,
 		pb.RoundStatus_FLOP:     pb.RoundStatus_RIVER,
 		pb.RoundStatus_RIVER:    pb.RoundStatus_TURN,
-		pb.RoundStatus_TURN:     pb.RoundStatus_OVER,
+		pb.RoundStatus_TURN:     pb.RoundStatus_SHOW,
+		pb.RoundStatus_SHOW:     pb.RoundStatus_OVER,
 	}
 	nextRound := rMap[r.GetStatus()]
 	r.Status = nextRound
@@ -1400,6 +1400,7 @@ func (s *Server) SetNextRound(ctx context.Context, in *pb.Round) (*pb.Round, err
 		return nil, err
 	}
 
+	// We ignore status RoundStatus_SHOW, since we don't need to deal any cards
 	switch nextRound {
 	case pb.RoundStatus_FLOP:
 		r, err = s.DealFlop(ctx, r)
@@ -1416,8 +1417,10 @@ func (s *Server) SetNextRound(ctx context.Context, in *pb.Round) (*pb.Round, err
 		if err != nil {
 			return nil, err
 		}
-	case pb.RoundStatus_SHOW:
-		// Final round of betting no deal
+	case pb.RoundStatus_OVER:
+		// TODO: create function to call here to end game and evaluate hand
+		return nil, ErrUnImplementedLogic
+
 	}
 	r, err = s.GetRound(ctx, r)
 	if err != nil {
@@ -1616,6 +1619,7 @@ func statusIsValidForBet(status pb.RoundStatus) bool {
 		pb.RoundStatus_FLOP:     true,
 		pb.RoundStatus_RIVER:    true,
 		pb.RoundStatus_TURN:     true,
+		pb.RoundStatus_SHOW:     true,
 	}
 	if s := valid[status]; s {
 		return true
