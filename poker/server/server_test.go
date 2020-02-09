@@ -1221,6 +1221,30 @@ func TestServer_ValidatePreGame(t *testing.T) {
 	}
 }
 
+func logRoundBets(t *testing.T, ctx context.Context, round *pb.Round) {
+	g, err := testClient.GetGame(ctx, &pb.Game{Id: round.GetGame()})
+	require.NoError(t, err)
+
+	log.Println("-------")
+	log.Println("Dealer Slot: ", g.GetDealer())
+	log.Println("Players:")
+	for _, player := range round.GetPlayers().GetPlayers() {
+		log.Println("\tPlayer: ", player.GetId(), "Slot: ", player.GetSlot(), player.GetInHand())
+	}
+	log.Println("-------")
+	log.Println("Bets")
+	bets, err := testClient.GetRoundBets(ctx, round)
+	require.NoError(t, err)
+
+	for _, b := range bets.GetBets() {
+		log.Println("\t", b.GetPlayer(), b.GetChips(), b.GetStatus(), b.GetType())
+	}
+	log.Println("-------")
+	log.Println("Action on slot: ", round.GetAction())
+	log.Println("Round Status: ", round.GetStatus())
+
+}
+
 func TestServer_DeletePlayers(t *testing.T) {
 
 	tests := []struct {
@@ -1765,16 +1789,32 @@ func TestServer_MakeBets(t *testing.T) {
 		PlayersToCreate *pb.Players
 		GameToCreate    *pb.Game
 		ExpError        string
-		bet1            []betTest
-		bet2            []betTest
-		bet3            []betTest
-		bet4            []betTest
-		bet5            []betTest
-		bet6            []betTest
-		bet7            []betTest
-		bet8            []betTest
-		bet9            []betTest
-		bet10           []betTest
+		//Pre flop
+		bet1 []betTest
+		bet2 []betTest
+		bet3 []betTest
+		bet4 []betTest
+		bet5 []betTest
+		bet6 []betTest
+		bet7 []betTest
+		bet8 []betTest
+		bet9 []betTest
+
+		posFlop_bet1 []betTest
+		posFlop_bet2 []betTest
+		posFlop_bet3 []betTest
+		posFlop_bet4 []betTest
+		posFlop_bet5 []betTest
+		posFlop_bet6 []betTest
+		posFlop_bet7 []betTest
+
+		river_bet1 []betTest
+		river_bet2 []betTest
+		river_bet3 []betTest
+		river_bet4 []betTest
+		river_bet5 []betTest
+		river_bet6 []betTest
+		river_bet7 []betTest
 	}{
 		{
 			Name: "Make bets",
@@ -1924,7 +1964,168 @@ func TestServer_MakeBets(t *testing.T) {
 						Chips: 1,
 						Type:  pb.Bet_CALL,
 					},
-					err: rpcError(server.ErrUnImplementedLogic.Error()),
+					err: "",
+				},
+			},
+			posFlop_bet1: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_FOLD,
+						Status: pb.RoundStatus_PRE_FLOP,
+					},
+					err: rpcError(server.ErrWrongBetStatus.Error()),
+				},
+
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_FOLD,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: "",
+				},
+			},
+			posFlop_bet2: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: rpcError(server.ErrIncorrectBetForBetType.Error()),
+				},
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_RAISE,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: "",
+				},
+			},
+			posFlop_bet3: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_RAISE,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: rpcError(server.ErrWrongBetType.Error()),
+				},
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: "",
+				},
+			},
+			posFlop_bet4: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  0,
+						Type:   pb.Bet_FOLD,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: "",
+				},
+			},
+			posFlop_bet5: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: "",
+				},
+			},
+			posFlop_bet6: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: "",
+				},
+			},
+			posFlop_bet7: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: "",
+				},
+			},
+
+			river_bet1: []betTest{
+
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_RAISE,
+						Status: pb.RoundStatus_FLOP,
+					},
+					err: rpcError(server.ErrWrongBetStatus.Error()),
+				},
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_RAISE,
+						Status: pb.RoundStatus_RIVER,
+					},
+					err: "",
+				},
+			},
+			river_bet2: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_RIVER,
+					},
+					err: "",
+				},
+			},
+			river_bet3: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_RIVER,
+					},
+					err: "",
+				},
+			},
+			river_bet4: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_RIVER,
+					},
+					err: "",
+				},
+			},
+			river_bet5: []betTest{
+				{
+					bet: &pb.Bet{
+						Chips:  20,
+						Type:   pb.Bet_CALL,
+						Status: pb.RoundStatus_RIVER,
+					},
+					err: "",
 				},
 			},
 		},
@@ -1995,6 +2196,7 @@ func TestServer_MakeBets(t *testing.T) {
 			require.Equal(t, 2, len(bets.GetBets()))
 			// Get the player that should be making a bet and try to make one
 			p, err := testClient.GetPlayerOnBet(ctx, round)
+
 			require.NoError(t, err)
 
 			for _, bt := range tt.bet1 {
@@ -2204,10 +2406,6 @@ func TestServer_MakeBets(t *testing.T) {
 			bets, err = testClient.GetRoundBets(ctx, round)
 			require.NoError(t, err)
 
-			for _, b := range bets.GetBets() {
-				log.Println(b.GetPlayer(), b.GetChips(), b.GetStatus(), b.GetType())
-			}
-
 			for _, bt := range tt.bet9 {
 				bt.bet.Player = p.GetId()
 				bt.bet.Game = readyGame.GetId()
@@ -2230,6 +2428,334 @@ func TestServer_MakeBets(t *testing.T) {
 			require.NotEqual(t, prevAction, p.GetSlot())
 			bets, err = testClient.GetRoundBets(ctx, round)
 			require.NoError(t, err)
+
+			///////
+			// At this point the betting round is over,
+			// The following should be true:
+			// - Flop is saved to round
+			// - action is set to the next player in hand left of dealer.
+			// - the round status is set to the next round
+
+			require.Equal(t, pb.RoundStatus_FLOP, round.GetStatus())
+			// 3 cards (2x character per card)
+			require.Equal(t, 6, len(round.GetFlop()))
+
+			// First bet of POST FLOP:
+			for _, bt := range tt.posFlop_bet1 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Second bet of POST FLOP:
+			for _, bt := range tt.posFlop_bet2 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Third bet of POST FLOP:
+			for _, bt := range tt.posFlop_bet3 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Fourth bet of POST FLOP:
+			for _, bt := range tt.posFlop_bet4 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Fifth bet of POST FLOP:
+			for _, bt := range tt.posFlop_bet5 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Sixth bet of POST FLOP:
+			for _, bt := range tt.posFlop_bet6 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Seventh bet of POST FLOP:
+			for _, bt := range tt.posFlop_bet7 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			///////
+			// At this point the betting round is over,
+			// The following should be true:
+			// - River is saved to round
+			// - action is set to the next player in hand left of dealer.
+			// - the round status is set to the next round: Status_River
+
+			require.Equal(t, pb.RoundStatus_RIVER, round.GetStatus())
+			// 1 card (2 character)
+			require.Equal(t, 2, len(round.GetRiver()))
+
+			// First bet of RIVER:
+			for _, bt := range tt.river_bet1 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Second bet of RIVER:
+			for _, bt := range tt.river_bet2 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Third bet of RIVER:
+			for _, bt := range tt.river_bet3 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Fourth bet of RIVER:
+			for _, bt := range tt.river_bet4 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			// Fifth bet of RIVER:
+			for _, bt := range tt.river_bet5 {
+				bt.bet.Player = p.GetId()
+				bt.bet.Game = readyGame.GetId()
+				bt.bet.Round = round.GetId()
+				// Removed status allocation here to test
+				_, err = testClient.MakeBet(ctx, bt.bet)
+				if err == nil && bt.err != "" {
+					log.Println("Returned No Error when expected to receive the error: ", bt.err)
+					t.Fail()
+				} else if bt.err != "" {
+					require.Equal(t, bt.err, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+			prevAction = round.GetAction()
+			round, err = testClient.GetRound(ctx, &pb.Round{Id: round.GetId()})
+			p, err = testClient.GetPlayerOnBet(ctx, round)
+			require.NoError(t, err)
+			require.NotEqual(t, prevAction, p.GetSlot())
+			bets, err = testClient.GetRoundBets(ctx, round)
+			require.NoError(t, err)
+
+			///////
+			// At this point the betting round is over,
+			// The following should be true:
+			// - River is saved to round
+			// - action is set to the next player in hand left of dealer.
+			// - the round status is set to the next round: Status_River
+
+			require.Equal(t, pb.RoundStatus_TURN, round.GetStatus())
+			// 1 card (2 character)
+			require.Equal(t, 2, len(round.GetTurn()))
+
+			logRoundBets(t, ctx, round)
+
+			// TODO: Add loops for final Turn round bet
+			// Need a case in SetNextRound that if its the turn and there are > 1 player in
+			// then we need to evaluate the cards and determine the winner
+			t.Fail()
 
 		})
 

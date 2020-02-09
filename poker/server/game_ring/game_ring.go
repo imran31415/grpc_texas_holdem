@@ -3,9 +3,8 @@ package game_ring
 import (
 	"container/ring"
 	"fmt"
-	"sort"
-
 	pb "imran/poker/protobufs"
+	"sort"
 )
 
 var (
@@ -13,6 +12,7 @@ var (
 	ErrIncorrectRingValueType = fmt.Errorf("unable to marshal value from ring")
 	ErrDealerNotSet           = fmt.Errorf("dealer not set")
 	ErrPlayerNotSet           = fmt.Errorf("player not set")
+	ErrNoPlayerInHand         = fmt.Errorf("No Player in hand left of start")
 )
 
 // use a game ring to manage turns
@@ -39,10 +39,8 @@ NewRing generates a ring data type using the players in a game.
 
 	Note: there is an edge case where if it is heads up (2 players) the blinds would be reversed
 */
-
 func NewRing(g *pb.Game) (*GameRing, error) {
 	// construct game ring:
-
 	players := g.GetPlayers().GetPlayers()
 	r := ring.New(len(players))
 	gr := &GameRing{
@@ -91,7 +89,41 @@ func (g *GameRing) LeftOfDealer() (*pb.Player, error) {
 		return nil, err
 	}
 	return pl, nil
+}
 
+func (g *GameRing) NextInHand(start *pb.Player) (*pb.Player, error) {
+
+	g.next()
+	pl, err := g.player()
+	if err != nil {
+		return nil, err
+	}
+
+	if start.GetId() == pl.GetId() {
+		// we have returned to the first player we started with,
+		// that means there are no players in hand
+		return nil, ErrNoPlayerInHand
+	}
+
+	if pl.GetInHand() {
+		return pl, err
+	}
+
+	return g.NextInHand(start)
+}
+func (g *GameRing) FirstOnBet() (*pb.Player, error) {
+	if _, err := g.LeftOfDealer(); err != nil {
+		return nil, err
+	}
+	pl, err := g.player()
+	if err != nil {
+		return nil, err
+	}
+
+	if pl.GetInHand() {
+		return pl, err
+	}
+	return g.NextInHand(pl)
 }
 
 func (g *GameRing) CurrentDealer() (*pb.Player, error) {

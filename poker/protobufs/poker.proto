@@ -46,12 +46,19 @@ service Poker {
     rpc StartRound(Round) returns (Round){}
     rpc DealCards(Round) returns (Round){}
     rpc UpdateDeck(Round) returns (Round){}
+    rpc DealFlop(Round) returns (Round){}
+    rpc DealRiver(Round) returns (Round){}
+    rpc DealTurn(Round) returns (Round){}
     rpc CreateDeck(Round) returns (Round){}
     rpc SetAction(Round) returns (Round){}
     rpc SetNextOnBet(Round) returns (Round){}
+    rpc SetNextRound(Round) returns (Round){}
+    rpc UpdateRoundFlop(Round) returns (Round){}
+    rpc UpdateRoundRiver(Round) returns (Round){}
+    rpc UpdateRoundTurn(Round) returns (Round){}
     rpc GetRoundBets(Round) returns (Bets){}
     rpc GetRoundBetsForStatus(Round) returns (Bets){}
-    rpc MakeBet(Bet) returns (Bet){}
+    rpc MakeBet(Bet) returns (Round){}
     rpc GetPlayerOnBet(Round) returns (Player){}
     rpc UpdatePlayerNotinHand(Player) returns(Player) {}
     rpc GetAmountToCallForPlayer(AmountToCall) returns (AmountToCall) {}
