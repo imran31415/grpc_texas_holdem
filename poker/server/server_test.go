@@ -1221,30 +1221,6 @@ func TestServer_ValidatePreGame(t *testing.T) {
 	}
 }
 
-func logRoundBets(t *testing.T, ctx context.Context, round *pb.Round) {
-	g, err := testClient.GetGame(ctx, &pb.Game{Id: round.GetGame()})
-	require.NoError(t, err)
-
-	log.Println("-------")
-	log.Println("Dealer Slot: ", g.GetDealer())
-	log.Println("Players:")
-	for _, player := range round.GetPlayers().GetPlayers() {
-		log.Println("\tPlayer: ", player.GetId(), "Slot: ", player.GetSlot(), player.GetInHand())
-	}
-	log.Println("-------")
-	log.Println("Bets")
-	bets, err := testClient.GetRoundBets(ctx, round)
-	require.NoError(t, err)
-
-	for _, b := range bets.GetBets() {
-		log.Println("\t", b.GetPlayer(), b.GetChips(), b.GetStatus(), b.GetType())
-	}
-	log.Println("-------")
-	log.Println("Action on slot: ", round.GetAction())
-	log.Println("Round Status: ", round.GetStatus())
-
-}
-
 func TestServer_DeletePlayers(t *testing.T) {
 
 	tests := []struct {
@@ -1745,7 +1721,7 @@ type betTest struct {
 	bet *pb.Bet
 }
 
-// TestServer_MakeBets creates starts a round and tests making bets
+// TestServer_MakeBets creates starts a round and tests making bets, progressing through a full round
 func TestServer_MakeBets(t *testing.T) {
 	testMin := int64(1000)
 
@@ -2266,100 +2242,42 @@ func TestServer_MakeBets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			defer cancel()
 
-			createdPlayers, err := testClient.CreatePlayers(ctx, tt.PlayersToCreate)
-			require.NoError(t, err)
-			require.Equal(t, len(tt.PlayersToCreate.GetPlayers()), len(createdPlayers.GetPlayers()))
-			// Create the initial game
-			game, err := testClient.CreateGame(ctx, tt.GameToCreate)
-			require.NoError(t, err)
-
-			game.Players = tt.GameToCreate.GetPlayers()
-
-			// Set the initial game players
-			_, err = testClient.SetGamePlayers(ctx, game)
-			require.NoError(t, err)
-
-			// validate the number of initial players is correct
-			players, err := testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
-			require.NoError(t, err)
-			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(players.GetPlayers()))
-
-			// get the game and get it to a ready state
-			gameToAllocate, err := testClient.GetGame(ctx, game)
-			require.NoError(t, err)
-			allocatedGame, err := testClient.AllocateGameSlots(ctx, gameToAllocate)
-			require.NoError(t, err)
-			buttonSetGame, err := testClient.SetButtonPositions(ctx, allocatedGame)
-			require.NoError(t, err)
-			buttonSetGame.Min = minChips
-			readyGame, err := testClient.SetMin(ctx, buttonSetGame)
-			require.NoError(t, err)
-
-			// sanity check the game is set with players correctly before creating round
-			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(readyGame.GetPlayers().GetPlayers()))
-
-			round, err := testClient.CreateRoundFromGame(ctx, readyGame)
-			require.NoError(t, err)
-			require.Equal(t, readyGame.GetId(), round.GetGame())
-
-			// num of players in round should equal the game it was created from
-			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(round.GetPlayers().GetPlayers()))
-
-			roundPlayers, err := testClient.GetRoundPlayersByRoundId(ctx, round)
-			require.NoError(t, err)
-			// num of players in round should equal the game it was created from
-			require.Equal(t, len(tt.GameToCreate.GetPlayers().GetPlayers()), len(roundPlayers.GetPlayers()))
-
-			round, err = testClient.ValidatePreRound(ctx, round)
-			require.NoError(t, err)
-
-			round, err = testClient.StartRound(ctx, round)
-			require.NoError(t, err)
-
-			bets, err := testClient.GetRoundBets(ctx, round)
-			require.NoError(t, err)
-			// big and small blinds
-			require.Equal(t, 2, len(bets.GetBets()))
-			bets, err = testClient.GetRoundBetsForStatus(ctx, round)
-			require.NoError(t, err)
-			// small and big blind
-			require.Equal(t, 2, len(bets.GetBets()))
-			// Get the player that should be making a bet and try to make one
-			p, err := testClient.GetPlayerOnBet(ctx, round)
-
-			require.NoError(t, err)
-
-			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.bet1)
-
-			///////////////////////////////////////////
-			// At this point small and big blinds are set and the first bet has been cast.
-			// Check the things we expect
-
+			round, bets, readyGame := setupGame(t, tt.PlayersToCreate, tt.GameToCreate)
 			require.Equal(t, 3, len(bets.GetBets()))
 			b1 := bets.GetBets()[0]
 			require.Equal(t, pb.Bet_SMALL, b1.GetType())
-			require.Equal(t, game.GetMin(), b1.GetChips())
+			require.Equal(t, readyGame.GetMin(), b1.GetChips())
 			b2 := bets.GetBets()[1]
 			require.Equal(t, pb.Bet_BIG, b2.GetType())
-			require.Equal(t, game.GetMin()*2, b2.GetChips())
-			b3 := bets.GetBets()[2]
-			require.Equal(t, pb.Bet_CALL, b3.GetType())
-			require.Equal(t, game.GetMin()*2, b3.GetChips())
-			bets, err = testClient.GetRoundBetsForStatus(ctx, round)
-			require.NoError(t, err)
-			require.Equal(t, 3, len(bets.GetBets()))
+			require.Equal(t, readyGame.GetMin()*2, b2.GetChips())
+			ctx := context.Background()
 			b1 = bets.GetBets()[0]
 			b2 = bets.GetBets()[1]
-			b3 = bets.GetBets()[2]
+
 			require.Equal(t, pb.Bet_SMALL, b1.GetType())
 			require.Equal(t, minChips, b1.GetChips())
 
 			require.Equal(t, pb.Bet_BIG, b2.GetType())
 			require.Equal(t, minChips*2, b2.GetChips())
 
+			// Get the player that should be making a bet and try to make one
+			p, err := testClient.GetPlayerOnBet(ctx, round)
+
+			require.NoError(t, err)
+
+			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.bet1)
+			///////////////////////////////////////////
+			// At this point small and big blinds are set and the first bet has been cast.
+			// Check the things we expect
+			b3 := bets.GetBets()[2]
+			require.Equal(t, pb.Bet_CALL, b3.GetType())
+			require.Equal(t, readyGame.GetMin()*2, b3.GetChips())
+			bets, err = testClient.GetRoundBetsForStatus(ctx, round)
+			require.NoError(t, err)
+			require.Equal(t, 3, len(bets.GetBets()))
+
+			b3 = bets.GetBets()[2]
 			require.Equal(t, pb.Bet_CALL, b3.GetType())
 			require.Equal(t, minChips*2, b3.GetChips())
 
@@ -2470,5 +2388,95 @@ func makeAndEvaluateBet(t *testing.T, ctx context.Context, round *pb.Round, read
 	bets, err := testClient.GetRoundBets(ctx, round)
 	require.NoError(t, err)
 	return bets, round, p
+}
+
+func setupGame(t *testing.T, players *pb.Players, inGame *pb.Game) (*pb.Round, *pb.Bets, *pb.Game) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	createdPlayers, err := testClient.CreatePlayers(ctx, players)
+	require.NoError(t, err)
+	require.Equal(t, len(players.GetPlayers()), len(createdPlayers.GetPlayers()))
+	// Create the initial game
+	game, err := testClient.CreateGame(ctx, inGame)
+	require.NoError(t, err)
+
+	game.Players = inGame.GetPlayers()
+
+	// Set the initial game players
+	_, err = testClient.SetGamePlayers(ctx, game)
+	require.NoError(t, err)
+
+	// validate the number of initial players is correct
+	players, err = testClient.GetGamePlayersByGameId(ctx, &pb.Game{Id: game.GetId()})
+	require.NoError(t, err)
+	require.Equal(t, len(game.GetPlayers().GetPlayers()), len(players.GetPlayers()))
+
+	// get the game and get it to a ready state
+	gameToAllocate, err := testClient.GetGame(ctx, game)
+	require.NoError(t, err)
+	allocatedGame, err := testClient.AllocateGameSlots(ctx, gameToAllocate)
+	require.NoError(t, err)
+	buttonSetGame, err := testClient.SetButtonPositions(ctx, allocatedGame)
+	require.NoError(t, err)
+	buttonSetGame.Min = minChips
+	readyGame, err := testClient.SetMin(ctx, buttonSetGame)
+	require.NoError(t, err)
+
+	// sanity check the game is set with players correctly before creating round
+	require.Equal(t, len(game.GetPlayers().GetPlayers()), len(readyGame.GetPlayers().GetPlayers()))
+
+	round, err := testClient.CreateRoundFromGame(ctx, readyGame)
+	require.NoError(t, err)
+	require.Equal(t, readyGame.GetId(), round.GetGame())
+
+	// num of players in round should equal the game it was created from
+	require.Equal(t, len(game.GetPlayers().GetPlayers()), len(round.GetPlayers().GetPlayers()))
+
+	roundPlayers, err := testClient.GetRoundPlayersByRoundId(ctx, round)
+	require.NoError(t, err)
+	// num of players in round should equal the game it was created from
+	require.Equal(t, len(game.GetPlayers().GetPlayers()), len(roundPlayers.GetPlayers()))
+
+	round, err = testClient.ValidatePreRound(ctx, round)
+	require.NoError(t, err)
+
+	round, err = testClient.StartRound(ctx, round)
+	require.NoError(t, err)
+
+	bets, err := testClient.GetRoundBets(ctx, round)
+	require.NoError(t, err)
+	// big and small blinds
+	require.Equal(t, 2, len(bets.GetBets()))
+	bets, err = testClient.GetRoundBetsForStatus(ctx, round)
+	require.NoError(t, err)
+	// small and big blind
+	require.Equal(t, 2, len(bets.GetBets()))
+	return round, bets, readyGame
+}
+
+// Utility to log the staus of a game.
+// TODO: eventually move this
+func logRoundBets(t *testing.T, ctx context.Context, round *pb.Round) {
+	g, err := testClient.GetGame(ctx, &pb.Game{Id: round.GetGame()})
+	require.NoError(t, err)
+
+	log.Println("-------")
+	log.Println("Dealer Slot: ", g.GetDealer())
+	log.Println("Players:")
+	for _, player := range round.GetPlayers().GetPlayers() {
+		log.Println("\tPlayer: ", player.GetId(), "Slot: ", player.GetSlot(), player.GetInHand())
+	}
+	log.Println("-------")
+	log.Println("Bets")
+	bets, err := testClient.GetRoundBets(ctx, round)
+	require.NoError(t, err)
+
+	for _, b := range bets.GetBets() {
+		log.Println("\t", b.GetPlayer(), b.GetChips(), b.GetStatus(), b.GetType())
+	}
+	log.Println("-------")
+	log.Println("Action on slot: ", round.GetAction())
+	log.Println("Round Status: ", round.GetStatus())
 
 }
