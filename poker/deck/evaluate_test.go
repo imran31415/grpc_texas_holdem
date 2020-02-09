@@ -30,7 +30,7 @@ func TestDeck_Logic(t *testing.T) {
 		},
 		{
 			Name:     "Worst hand possible",
-			hand:     []string{"Ts", "9d", "8c", "7c", "6hh"},
+			hand:     []string{"Ts", "9d", "8c", "7c", "6h"},
 			ExpScore: 1604,
 		},
 	}
@@ -73,21 +73,21 @@ func TestDeck_Evaluate(t *testing.T) {
 			hand:     []string{"Ts", "9d", "8c", "7c", "6h"},
 			ExpScore: 1604,
 		},
+		{
+			Name:     "another hand with 7 items",
+			hand:     []string{"As", "Ks", "Qs", "Js", "Ts", "2d", "3c"},
+			ExpScore: 1,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			hand := []deck.Card{}
+			hand := deck.Hand{}
 			for _, c := range tt.hand {
-				r := string(c[0])
-				s := string(c[1])
-				c := deck.Card{
-					Type: r,
-					Suit: s,
-				}
-				hand = append(hand, c)
+				card := deck.NewCard(c)
+				hand = append(hand, *card)
 			}
-			assert.Equal(t, int(tt.ExpScore), int(deck.EvaluateHand(hand)))
+			assert.Equal(t, int(tt.ExpScore), int(hand.EvaluateHand()))
 
 		})
 

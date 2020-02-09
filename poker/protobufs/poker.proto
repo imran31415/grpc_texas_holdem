@@ -27,6 +27,7 @@ service Poker {
     rpc ValidatePreGame(Game) returns (Game){}
     rpc NextDealer(Game) returns (Game){}
     rpc UpdateGameInRound(Game) returns (Game){}
+    rpc UpdateGameStatus(Game) returns (Game){}
 
 
     // GamePlayers (join table)
@@ -51,6 +52,7 @@ service Poker {
     rpc DealTurn(Round) returns (Round){}
     rpc CreateDeck(Round) returns (Round){}
     rpc SetAction(Round) returns (Round){}
+    rpc UpdateRoundStatus(Round) returns (Round){}
     rpc SetNextOnBet(Round) returns (Round){}
     rpc SetNextRound(Round) returns (Round){}
     rpc UpdateRoundFlop(Round) returns (Round){}
@@ -59,6 +61,7 @@ service Poker {
     rpc GetRoundBets(Round) returns (Bets){}
     rpc GetRoundBetsForStatus(Round) returns (Bets){}
     rpc MakeBet(Bet) returns (Round){}
+    rpc EvaluateHands(Round) returns (Round){}
     rpc GetPlayerOnBet(Round) returns (Player){}
     rpc UpdatePlayerNotinHand(Player) returns(Player) {}
     rpc GetAmountToCallForPlayer(AmountToCall) returns (AmountToCall) {}
@@ -83,6 +86,9 @@ message Player {
     // Whether they are in a hand
     bool in_hand = 5;
     string cards = 6;
+
+    // not saved in DB, used when evaluating hand
+    uint32 score = 7;
 }
 
 message Players {
@@ -118,6 +124,9 @@ message Round {
     int64 game = 9;
     // Slot of person who has to bet
     int64 action = 10;
+    int64 winning_player = 11;
+    string winning_hand  = 12;
+    uint32 winning_score = 13;
 }
 
 message Rounds {

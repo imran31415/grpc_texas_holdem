@@ -15,6 +15,9 @@ type Round struct {
 	River  string
 	Game   int64
 	Action int64
+	WinningPlayer int64
+	WinningHand   string
+	WinningScore uint32
 }
 
 type RoundPlayers struct {
@@ -33,6 +36,9 @@ func (r *Round) ProtoUnMarshal(round *pb.Round) {
 	r.Game = round.GetGame()
 	r.Status = round.GetStatus().String()
 	r.Action = round.GetAction()
+	r.WinningHand = round.GetWinningHand()
+	r.WinningPlayer = round.GetWinningPlayer()
+	r.WinningScore = round.GetWinningScore()
 }
 
 // ProtoMarshal gets the protobuf representation of the DB
@@ -46,5 +52,8 @@ func (p *Round) ProtoMarshal() *pb.Round {
 		Game:   p.Game,
 		Status: pb.RoundStatus(pb.RoundStatus_value[p.Status]),
 		Action: p.Action,
+		WinningHand:p.WinningHand,
+		WinningScore:p.WinningScore,
+		WinningPlayer:p.WinningPlayer,
 	}
 }

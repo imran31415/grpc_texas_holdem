@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2234,7 +2235,7 @@ func TestServer_MakeBets(t *testing.T) {
 						Type:   pb.Bet_CALL,
 						Status: pb.RoundStatus_SHOW,
 					},
-					err: rpcError(server.ErrUnImplementedLogic.Error()),
+					err: "",
 				},
 			},
 		},
@@ -2244,7 +2245,7 @@ func TestServer_MakeBets(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 
 			round, bets, readyGame := setupGame(t, tt.PlayersToCreate, tt.GameToCreate)
-			require.Equal(t, 3, len(bets.GetBets()))
+			require.Equal(t, 2, len(bets.GetBets()))
 			b1 := bets.GetBets()[0]
 			require.Equal(t, pb.Bet_SMALL, b1.GetType())
 			require.Equal(t, readyGame.GetMin(), b1.GetChips())
@@ -2351,11 +2352,14 @@ func TestServer_MakeBets(t *testing.T) {
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet2)
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet3)
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet4)
-			logRoundBets(t, ctx, round)
 
-			// TODO: Add loops for final Turn round bet
-			// Need a case in SetNextRound that if its the turn and there are > 1 player in
-			// then we need to evaluate the cards and determine the winner
+			require.NoError(t, err)
+			require.NotZero(t, round.GetWinningPlayer())
+			require.NotZero(t, round.GetWinningScore())
+			require.Equal(t, 14, len(round.GetWinningHand()))
+			g, err := testClient.GetGame(ctx, &pb.Game{Id: round.GetGame()})
+			require.NoError(t, err)
+			require.False(t, g.GetInRound())
 
 		})
 
@@ -2456,7 +2460,7 @@ func setupGame(t *testing.T, players *pb.Players, inGame *pb.Game) (*pb.Round, *
 }
 
 // Utility to log the staus of a game.
-// TODO: eventually move this
+// TODO: eventually move this into the actual server when needed
 func logRoundBets(t *testing.T, ctx context.Context, round *pb.Round) {
 	g, err := testClient.GetGame(ctx, &pb.Game{Id: round.GetGame()})
 	require.NoError(t, err)
@@ -2478,5 +2482,77 @@ func logRoundBets(t *testing.T, ctx context.Context, round *pb.Round) {
 	log.Println("-------")
 	log.Println("Action on slot: ", round.GetAction())
 	log.Println("Round Status: ", round.GetStatus())
+
+}
+
+func TestServer_EvaluateHands(t *testing.T) {
+
+	tests := []struct {
+		Name     string
+		Players  *pb.Players
+		Count    int
+		TopScore uint32
+	}{
+		{
+			Name: "1 player with royal flush",
+
+			Players: &pb.Players{
+				Players: []*pb.Player{
+					{
+						Id:    1,
+						Name:  getUniqueName(),
+						Cards: strings.Join([]string{"As", "Ks", "Qs", "Js", "Ts", "2d", "3c"}, ""),
+					},
+				},
+			},
+
+			Count:    1,
+			TopScore: 1,
+		},
+		{
+			Name: "Multiple players",
+			Players: &pb.Players{
+				Players: []*pb.Player{
+					{
+						Id:    2,
+						Name:  getUniqueName(),
+						Cards: strings.Join([]string{"5c", "Ks", "Qs", "3d", "Ts", "2d", "3c"}, ""),
+					},
+					{
+						Id:    3,
+						Name:  getUniqueName(),
+						Cards: strings.Join([]string{"Js", "Jh", "Jc", "Js", "Ts", "2d", "3c"}, ""),
+					},
+					{
+						Id:    4,
+						Name:  getUniqueName(),
+						Cards: strings.Join([]string{"4s", "8s", "9s", "Js", "Ts", "2d", "3c"}, ""),
+					},
+				},
+			},
+			Count:    3,
+			TopScore: 50, // 4 jacks = 50
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
+			r := &pb.Round{
+				Status:  pb.RoundStatus_OVER,
+				Players: tt.Players,
+			}
+
+			players, err := testClient.EvaluateHands(ctx, r)
+			require.NoError(t, err)
+			log.Println("PLayers", players.GetPlayers().GetPlayers())
+			require.Equal(t, tt.Count, len(players.GetPlayers().GetPlayers()))
+
+			topPlayer := players.GetPlayers().GetPlayers()[0]
+			require.Equal(t, int(tt.TopScore), int(topPlayer.GetScore()))
+
+		})
+	}
 
 }

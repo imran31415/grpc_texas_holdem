@@ -51,6 +51,7 @@ var (
 	ErrIncompleteBets          = fmt.Errorf("wrong number of bets for round")
 	ErrWrongBetStatus          = fmt.Errorf("wrong bet status")
 	ErrNoExistingCards         = fmt.Errorf("expecting existing cards, but no cards for player in hand")
+	ErrNoWinningPlayer         = fmt.Errorf("no winning player determined")
 )
 
 type Server struct {
@@ -702,6 +703,22 @@ func (s *Server) GetRoundPlayersByRoundId(ctx context.Context, in *pb.Round) (*p
 	return players, nil
 }
 
+func (s *Server) GetActiveRoundPlayersByRoundId(ctx context.Context, in *pb.Round) (*pb.Players, error) {
+
+	// Get hydrated player instead of just their IDs
+	players, err := s.GetRoundPlayersByRoundId(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	out := pb.Players{}
+	for _, p := range players.GetPlayers() {
+		if p.GetInHand() {
+			out.Players = append(out.Players, p)
+		}
+	}
+	return &out, nil
+}
+
 func (s *Server) UpdateGameInRound(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	game, err := s.GetGame(ctx, g)
 	if err != nil {
@@ -728,6 +745,23 @@ func (s *Server) UpdateGameInRound(ctx context.Context, g *pb.Game) (*pb.Game, e
 	return out, nil
 }
 
+func (s *Server) UpdateRoundWinnerStatus(ctx context.Context, r *pb.Round) (*pb.Round, error) {
+
+	toUpdate := &models.Round{}
+	toUpdate.ProtoUnMarshal(r)
+
+	if err := s.gormDb.Where("id = ?", r.GetId()).Find(toUpdate).Updates(map[string]interface{}{"winning_hand": toUpdate.WinningHand, "winning_score": toUpdate.WinningScore, "winning_player": toUpdate.WinningPlayer}).Error; err != nil {
+		return nil, err
+	}
+
+	out, err := s.GetRound(ctx, r)
+
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (s *Server) UpdateRoundStatus(ctx context.Context, r *pb.Round) (*pb.Round, error) {
 
 	toUpdate := &models.Round{}
@@ -738,6 +772,23 @@ func (s *Server) UpdateRoundStatus(ctx context.Context, r *pb.Round) (*pb.Round,
 	}
 
 	out, err := s.GetRound(ctx, r)
+
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (s *Server) UpdateGameStatus(ctx context.Context, g *pb.Game) (*pb.Game, error) {
+
+	toUpdate := &models.Game{}
+	toUpdate.ProtoUnMarshal(g)
+
+	if err := s.gormDb.Where("id = ?", g.GetId()).Find(toUpdate).Update(
+		"InRound", false).Error; err != nil {
+		return nil, err
+	}
+	out, err := s.GetGame(ctx, g)
 
 	if err != nil {
 		return nil, err
@@ -1341,12 +1392,6 @@ func (s *Server) MakeBet(ctx context.Context, in *pb.Bet) (*pb.Round, error) {
 	}
 
 	if over.GetBettingOver() {
-		// TODO:
-		// 1. Deal the FLOP
-		// 2. Update round status to be POST_FLOP
-		// 3. Set action to dealer (if he is still in round).
-		// This is going to be tricky as the game ring is generated from all players
-		// TODO (untangle this)
 		return s.SetNextRound(ctx, r)
 	}
 
@@ -1419,7 +1464,12 @@ func (s *Server) SetNextRound(ctx context.Context, in *pb.Round) (*pb.Round, err
 		}
 	case pb.RoundStatus_OVER:
 		// TODO: create function to call here to end game and evaluate hand
-		return nil, ErrUnImplementedLogic
+		r, err = s.EvaluateHands(ctx, r)
+
+		if err != nil {
+			return nil, err
+		}
+		return s.UpdateRoundWinner(ctx, r)
 
 	}
 	r, err = s.GetRound(ctx, r)
@@ -1611,6 +1661,71 @@ func (s *Server) GetPlayerOnBet(ctx context.Context, in *pb.Round) (*pb.Player, 
 	}
 	return p, nil
 
+}
+
+func (s *Server) UpdateRoundWinner(ctx context.Context, r *pb.Round) (*pb.Round, error) {
+
+	g, err := s.GetGame(ctx, &pb.Game{Id: r.GetGame()})
+	if err != nil {
+		return nil, err
+	}
+
+	g.InRound = false
+
+	g, err = s.UpdateGameStatus(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.UpdateRoundStatus(ctx, r)
+
+}
+
+func (s *Server) EvaluateHands(ctx context.Context, round *pb.Round) (*pb.Round, error) {
+	// expects an inflated round
+	players := round.GetPlayers()
+	if len(players.GetPlayers()) < 1 {
+		return nil, ErrPlayerDoesntExist
+	}
+	pMap := map[int64]*pb.Player{}
+
+	handsToRank := make(deck.PlayerHands, len(players.GetPlayers()))
+
+	for _, player := range players.GetPlayers() {
+
+		hand := deck.NewHand(player.GetCards() + round.GetFlop() + round.GetRiver() + round.GetRiver())
+		score := hand.EvaluateHand()
+		// set the score on response
+		player.Score = score
+		playerHand := deck.PlayerHand{
+			Hand:     hand,
+			Value:    score,
+			PlayerId: player.GetId(),
+		}
+		handsToRank = append(handsToRank, playerHand)
+
+		pMap[player.GetId()] = player
+	}
+
+	sort.Sort(handsToRank)
+
+	out := pb.Players{}
+	for _, hand := range handsToRank {
+		if v, ok := pMap[hand.PlayerId]; ok {
+			out.Players = append(out.Players, v)
+		}
+	}
+
+	round.Players = &out
+
+	winner := out.GetPlayers()[0]
+	// set winner and set action to 0
+	round.WinningPlayer = winner.GetId()
+	round.WinningScore = winner.GetScore()
+	round.WinningHand = winner.GetCards() + round.GetFlop() + round.GetRiver() + round.GetRiver()
+	round.Action = 0
+
+	return round, nil
 }
 
 func statusIsValidForBet(status pb.RoundStatus) bool {

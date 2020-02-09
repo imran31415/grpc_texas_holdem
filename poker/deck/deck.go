@@ -21,12 +21,57 @@ type Card struct {
 	Suit string
 }
 
+func NewCard(s string) *Card {
+	rank := string(s[0])
+	suit := string(s[1])
+	card := &Card{
+		Type: rank,
+		Suit: suit,
+	}
+	return card
+}
+
 func (c *Card) String() string {
 	return fmt.Sprintf("%s%s", c.Type, c.Suit)
 }
 
-func (c *Card) Marshal(string) {
-	c = &Card{}
+type Hand []Card
+
+type PlayerHand struct {
+	Hand     Hand
+	Value    uint32
+	PlayerId int64
+}
+
+type PlayerHands []PlayerHand
+
+func (p PlayerHands) Len() int           { return len(p) }
+func (p PlayerHands) Less(i, j int) bool { return p[i].Value < p[j].Value }
+func (p PlayerHands) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+func NewHand(hand string) Hand {
+	out := []Card{}
+	for i, _ := range hand {
+		index := i + 1
+		if index%2 == 0 {
+			out = append(out, Card{
+				Type: string(hand[i-1]),
+				Suit: string(hand[i]),
+			})
+
+		}
+	}
+	return out
+
+}
+
+func (h Hand) EvaluateHand() uint32 {
+	toEval := []string{}
+	for _, c := range h {
+		toEval = append(toEval, c.String())
+	}
+	return Logic(toEval)
+
 }
 
 type Deck []Card
@@ -103,13 +148,4 @@ func Shuffle(d Deck) Deck {
 func DealCard(d Deck) (Card, Deck) {
 	c, d := d[len(d)-1], d[:len(d)-1]
 	return c, d
-}
-
-func EvaluateHand(cards []Card) uint32 {
-	toEval := []string{}
-	for _, c := range cards {
-		toEval = append(toEval, c.String())
-	}
-	return Logic(toEval)
-
 }
