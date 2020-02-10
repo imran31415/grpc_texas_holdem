@@ -54,6 +54,9 @@ var (
 	ErrNoWinningPlayer         = fmt.Errorf("no winning player determined")
 )
 
+// TODOS:
+// Add test for exiting early when everyone folds.
+
 type Server struct {
 	gormDb *gorm.DB
 }
@@ -703,22 +706,6 @@ func (s *Server) GetRoundPlayersByRoundId(ctx context.Context, in *pb.Round) (*p
 	return players, nil
 }
 
-func (s *Server) GetActiveRoundPlayersByRoundId(ctx context.Context, in *pb.Round) (*pb.Players, error) {
-
-	// Get hydrated player instead of just their IDs
-	players, err := s.GetRoundPlayersByRoundId(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	out := pb.Players{}
-	for _, p := range players.GetPlayers() {
-		if p.GetInHand() {
-			out.Players = append(out.Players, p)
-		}
-	}
-	return &out, nil
-}
-
 func (s *Server) UpdateGameInRound(ctx context.Context, g *pb.Game) (*pb.Game, error) {
 	game, err := s.GetGame(ctx, g)
 	if err != nil {
@@ -738,23 +725,6 @@ func (s *Server) UpdateGameInRound(ctx context.Context, g *pb.Game) (*pb.Game, e
 	}
 
 	out, err := s.GetGame(ctx, g)
-
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (s *Server) UpdateRoundWinnerStatus(ctx context.Context, r *pb.Round) (*pb.Round, error) {
-
-	toUpdate := &models.Round{}
-	toUpdate.ProtoUnMarshal(r)
-
-	if err := s.gormDb.Where("id = ?", r.GetId()).Find(toUpdate).Updates(map[string]interface{}{"winning_hand": toUpdate.WinningHand, "winning_score": toUpdate.WinningScore, "winning_player": toUpdate.WinningPlayer}).Error; err != nil {
-		return nil, err
-	}
-
-	out, err := s.GetRound(ctx, r)
 
 	if err != nil {
 		return nil, err
@@ -1551,22 +1521,6 @@ func (s *Server) GetRoundBetsForStatus(ctx context.Context, in *pb.Round) (*pb.B
 		Bets: outs,
 	}, nil
 
-}
-func (s *Server) GetMaxRoundBetForStatus(ctx context.Context, in *pb.Round) (*pb.Bet, error) {
-	bets, err := s.GetRoundBetsForStatus(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-
-	var out *pb.Bet
-	var max int64 = 0
-	for _, b := range bets.GetBets() {
-		if b.GetChips() > max {
-			max = b.GetChips()
-			out = b
-		}
-	}
-	return out, nil
 }
 
 // TODO: make this a query instead

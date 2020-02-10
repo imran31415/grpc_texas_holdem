@@ -2352,7 +2352,6 @@ func TestServer_MakeBets(t *testing.T) {
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet2)
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet3)
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet4)
-			logRoundBets(t, ctx, round)
 
 			require.NoError(t, err)
 			require.NotZero(t, round.GetWinningPlayer())
@@ -2513,15 +2512,15 @@ func TestServer_EvaluateHands(t *testing.T) {
 			},
 
 			Count:    1,
-			TopScore: 1600,
+			TopScore: 1,
 		},
 		{
-			Name: "1 player with bad hand?",
+			Name: "test another hand",
 
 			Players: &pb.Players{
 				Players: []*pb.Player{
 					{
-						Id:    1,
+						Id:    2,
 						Name:  getUniqueName(),
 						Cards: strings.Join([]string{"4d", "Qs", "Ts", "Ad", "8s", "Js", "Kh"}, ""),
 					},
@@ -2529,7 +2528,7 @@ func TestServer_EvaluateHands(t *testing.T) {
 			},
 
 			Count:    1,
-			TopScore: 1,
+			TopScore: 1600,
 		},
 		{
 			Name: "Multiple players",
@@ -2568,7 +2567,6 @@ func TestServer_EvaluateHands(t *testing.T) {
 
 			players, err := testClient.EvaluateHands(ctx, r)
 			require.NoError(t, err)
-			log.Println("PLayers", players.GetPlayers().GetPlayers())
 			require.Equal(t, tt.Count, len(players.GetPlayers().GetPlayers()))
 
 			topPlayer := players.GetPlayers().GetPlayers()[0]
