@@ -2352,6 +2352,7 @@ func TestServer_MakeBets(t *testing.T) {
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet2)
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet3)
 			bets, round, p = makeAndEvaluateBet(t, ctx, round, readyGame, p, tt.show_bet4)
+			logRoundBets(t, ctx, round)
 
 			require.NoError(t, err)
 			require.NotZero(t, round.GetWinningPlayer())
@@ -2359,6 +2360,7 @@ func TestServer_MakeBets(t *testing.T) {
 			require.Equal(t, 14, len(round.GetWinningHand()))
 			g, err := testClient.GetGame(ctx, &pb.Game{Id: round.GetGame()})
 			require.NoError(t, err)
+
 			require.False(t, g.GetInRound())
 
 		})
@@ -2482,6 +2484,10 @@ func logRoundBets(t *testing.T, ctx context.Context, round *pb.Round) {
 	log.Println("-------")
 	log.Println("Action on slot: ", round.GetAction())
 	log.Println("Round Status: ", round.GetStatus())
+	log.Println("Round Showing: ", round.GetFlop()+round.GetRiver()+round.GetTurn())
+	log.Println("Round Winner: ", round.GetWinningPlayer())
+	log.Println("Round Winner Score: ", round.GetWinningScore())
+	log.Println("Round Winner Hand: ", round.GetWinningHand())
 
 }
 
@@ -2502,6 +2508,22 @@ func TestServer_EvaluateHands(t *testing.T) {
 						Id:    1,
 						Name:  getUniqueName(),
 						Cards: strings.Join([]string{"As", "Ks", "Qs", "Js", "Ts", "2d", "3c"}, ""),
+					},
+				},
+			},
+
+			Count:    1,
+			TopScore: 1600,
+		},
+		{
+			Name: "1 player with bad hand?",
+
+			Players: &pb.Players{
+				Players: []*pb.Player{
+					{
+						Id:    1,
+						Name:  getUniqueName(),
+						Cards: strings.Join([]string{"4d", "Qs", "Ts", "Ad", "8s", "Js", "Kh"}, ""),
 					},
 				},
 			},

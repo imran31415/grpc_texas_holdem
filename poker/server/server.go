@@ -1021,6 +1021,10 @@ func (s *Server) DealRiver(ctx context.Context, r *pb.Round) (*pb.Round, error) 
 			return nil, ErrNoExistingCards
 		}
 	}
+	r, err := s.GetRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
 	d := deck.Deck{}.Marshal(r.GetDeck())
 
 	//burn one
@@ -1028,7 +1032,7 @@ func (s *Server) DealRiver(ctx context.Context, r *pb.Round) (*pb.Round, error) 
 	var c1 deck.Card
 	c1, d = deck.DealCard(d)
 	r.River = c1.String()
-	r, err := s.UpdateRoundRiver(ctx, r)
+	r, err = s.UpdateRoundRiver(ctx, r)
 	if err != nil {
 		return nil, err
 	}
@@ -1050,6 +1054,10 @@ func (s *Server) DealTurn(ctx context.Context, r *pb.Round) (*pb.Round, error) {
 			return nil, ErrNoExistingCards
 		}
 	}
+	r, err := s.GetRound(ctx, r)
+	if err != nil {
+		return nil, err
+	}
 	d := deck.Deck{}.Marshal(r.GetDeck())
 
 	//burn one
@@ -1057,7 +1065,7 @@ func (s *Server) DealTurn(ctx context.Context, r *pb.Round) (*pb.Round, error) {
 	var c1 deck.Card
 	c1, d = deck.DealCard(d)
 	r.Turn = c1.String()
-	r, err := s.UpdateRoundTurn(ctx, r)
+	r, err = s.UpdateRoundTurn(ctx, r)
 	if err != nil {
 		return nil, err
 	}
@@ -1218,7 +1226,7 @@ func (s *Server) UpdateRoundTurn(ctx context.Context, in *pb.Round) (*pb.Round, 
 
 	out := &models.Round{}
 	if err := s.gormDb.Where("id = ?", in.GetId()).Find(out).Update(
-		"Turn", in.GetRiver()).Error; err != nil {
+		"Turn", in.GetTurn()).Error; err != nil {
 		return nil, err
 	}
 
@@ -1472,6 +1480,25 @@ func (s *Server) SetNextRound(ctx context.Context, in *pb.Round) (*pb.Round, err
 		return s.UpdateRoundWinner(ctx, r)
 
 	}
+
+	c := 0
+
+	for _, p := range r.GetPlayers().GetPlayers() {
+		if p.GetInHand() {
+			c += 1
+		}
+
+	}
+
+	if c == 1 {
+		r, err = s.EvaluateHands(ctx, r)
+
+		if err != nil {
+			return nil, err
+		}
+		return s.UpdateRoundWinner(ctx, r)
+	}
+
 	r, err = s.GetRound(ctx, r)
 	if err != nil {
 		return nil, err
@@ -1693,7 +1720,7 @@ func (s *Server) EvaluateHands(ctx context.Context, round *pb.Round) (*pb.Round,
 
 	for _, player := range players.GetPlayers() {
 
-		hand := deck.NewHand(player.GetCards() + round.GetFlop() + round.GetRiver() + round.GetRiver())
+		hand := deck.NewHand(player.GetCards() + round.GetFlop() + round.GetRiver() + round.GetTurn())
 		score := hand.EvaluateHand()
 		// set the score on response
 		player.Score = score
@@ -1715,6 +1742,9 @@ func (s *Server) EvaluateHands(ctx context.Context, round *pb.Round) (*pb.Round,
 			out.Players = append(out.Players, v)
 		}
 	}
+	if len(out.GetPlayers()) < 1 {
+		return nil, ErrPlayerDoesntExist
+	}
 
 	round.Players = &out
 
@@ -1722,10 +1752,11 @@ func (s *Server) EvaluateHands(ctx context.Context, round *pb.Round) (*pb.Round,
 	// set winner and set action to 0
 	round.WinningPlayer = winner.GetId()
 	round.WinningScore = winner.GetScore()
-	round.WinningHand = winner.GetCards() + round.GetFlop() + round.GetRiver() + round.GetRiver()
+	round.WinningHand = winner.GetCards() + round.GetFlop() + round.GetRiver() + round.GetTurn()
 	round.Action = 0
 
 	return round, nil
+
 }
 
 func statusIsValidForBet(status pb.RoundStatus) bool {
