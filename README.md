@@ -1,6 +1,6 @@
 ## Texas Hold'em GRPC Server
 
-- A Backend database and GRPC server to support a multiplayer texas holdem poker game.  
+- A GRPC server to support a stateful multiplayer texas holdem poker game.  
 
 
 #### Build protos:
