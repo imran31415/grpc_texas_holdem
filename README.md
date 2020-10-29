@@ -1,5 +1,7 @@
 ## Texas Hold'em GRPC Server
 
+- A Backend database and GRPC server to support a multiplayer texas holdem poker game.  
+
 
 #### Build protos:
 ```protoc -I poker/ poker/protobufs/poker.proto --go_out=plugins=grpc:poker```
