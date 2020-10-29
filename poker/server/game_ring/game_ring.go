@@ -3,7 +3,7 @@ package game_ring
 import (
 	"container/ring"
 	"fmt"
-	pb "imran/poker/protobufs"
+	pb "grpc_texas_holdem/poker/protobufs"
 	"sort"
 )
 

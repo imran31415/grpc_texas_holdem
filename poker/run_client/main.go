@@ -1,7 +1,7 @@
 package main
 
 import (
-	"imran/poker/client"
+	"grpc_texas_holdem/client"
 )
 
 func main() {

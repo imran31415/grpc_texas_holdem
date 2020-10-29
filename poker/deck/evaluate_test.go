@@ -2,7 +2,7 @@ package deck_test
 
 import (
 	"github.com/stretchr/testify/assert"
-	"imran/poker/deck"
+	"grpc_texas_holdem/poker/deck"
 	"testing"
 )
 

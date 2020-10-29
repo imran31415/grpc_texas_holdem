@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	pb "imran/poker/protobufs"
+	pb "grpc_texas_holdem/poker/protobufs"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 	defaultName = "Dumbo, you didnt specify a name!"
 )
 
-//  go run imran/pokerproject/poker_client/main.go imran
+//  go run grpc_texas_holdem/pokerproject/poker_client/main.go
 func Run() {
 	conn, c := CreateConnectionClient()
 	defer conn.Close()

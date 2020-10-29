@@ -2,8 +2,8 @@ package models
 
 import (
 	"github.com/jinzhu/gorm"
-	"imran/poker/deck"
-	pb "imran/poker/protobufs"
+	"grpc_texas_holdem/poker/deck"
+	pb "grpc_texas_holdem/poker/protobufs"
 )
 
 type Game struct {

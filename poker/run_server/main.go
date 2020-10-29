@@ -1,7 +1,7 @@
 package main
 
 import (
-	"imran/poker/server"
+	"grpc_texas_holdem/poker/server"
 )
 
 func main() {

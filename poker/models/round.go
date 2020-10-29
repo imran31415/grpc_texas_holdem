@@ -2,7 +2,7 @@ package models
 
 import (
 	"github.com/jinzhu/gorm"
-	pb "imran/poker/protobufs"
+	pb "grpc_texas_holdem/poker/protobufs"
 )
 
 // db representation of a round of 1 sequence of dealing out cards

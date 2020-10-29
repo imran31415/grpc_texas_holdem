@@ -2,7 +2,7 @@ package models
 
 import (
 	"github.com/jinzhu/gorm"
-	pb "imran/poker/protobufs"
+	pb "grpc_texas_holdem/poker/protobufs"
 )
 
 type Player struct {

@@ -12,10 +12,10 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"google.golang.org/grpc"
-	"imran/poker/deck"
-	"imran/poker/models"
-	pb "imran/poker/protobufs"
-	"imran/poker/server/game_ring"
+	"grpc_texas_holdem/poker/deck"
+	"grpc_texas_holdem/poker/models"
+	pb "grpc_texas_holdem/poker/protobufs"
+	"grpc_texas_holdem/poker/server/game_ring"
 )
 
 const (
